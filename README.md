@@ -8,20 +8,20 @@ Note: bake can be used for any type of projects (it's not only for rust) see [ex
 
 ## Table of content
 
-* Basic
-    * Init
-    * CLI
-    * TUI
-    * GUI
-    * Web
-* Error handling
-* Build dependencies
-* Run other tasks from a task
-* Platform specific commands
-* Plugin system
-* Task param
-* Template engine
-* Global variables
+1. Basic
+    1. Init
+    1. CLI
+    1. TUI
+    1. GUI
+    1. Web
+1. Error handling
+1. Build dependencies
+1. Run other tasks from a task
+1. Platform specific commands
+1. Plugin system
+1. Task param
+1. Template engine
+1. Global variables
 
 ## Basic
 
@@ -29,43 +29,15 @@ Make a file named 'bakefile.yaml' in root of your project
 
 ```yaml
 tasks:
-    - name: clean
+    - clean:
         help-msg: this task removes what you build
         cmd: 
             - rm ./build
-    - name: hello
+    - hello:
         help-msg: this task says hello
         cmd: 
             - echo hello world
             - echo hello from bake
-```
-
-Or a json file named bakefile.json
-
-```json
-{ 
-    "tasks": [
-        {
-            "name": "clean",
-            "help-msg": "this task removes what you build",
-            "cmd": ["rm ./build"]
-        },
-        {
-            "name": "hello",
-            "help-msg": "this task says hello",
-            "cmd": [
-                "echo hello world",
-                "echo hello from bake"
-            ]
-        },
-    ]
-}
-```
-
-Or you can make this file by running:
-
-```sh
-bake --setup
 ```
 
 Now you have many ways to run your tasks:
@@ -129,7 +101,7 @@ server:
     username: USERNAME
     password: PASSWORD
     default-port: 3001
-    public-serve: ./public-path
+    public-serve: ./public_path
 ```
 
 You can start server by running:
@@ -148,8 +120,7 @@ Warning: if you are using it over internet make sure its behind an encryption la
 
 ```yaml
 tasks:
-    task:
-        name: hello
+    hello:
         cmd: 
             - echo 1
             - echo2 # this is an error
@@ -168,23 +139,23 @@ task hello -> 'echo2' failed
 bake aborting hello
 ```
 
-Note: task 'echo 3' will not run
+Note: task 'echo 3' will not run.
 
 ## Build dependencies
 
 Sometimes you need some stuff installed on system to run a command.
 
-for example to run build task you need to have 'rust' installed
+for example to run your build task you need to have 'rust' installed.
 
 check this out:
 
 ```yaml
 dependencies:
-    - name: rust
+    - rust:
         check: cargo --version
         install-link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
 
-    - name: clippy
+    - clippy:
         check: cargo clippy --version
         install-cmd: cargo install clippy # install button will automatically install
 ```
@@ -193,12 +164,12 @@ Now you tasks can depends on dependencies
 
 ```yaml
 tasks:
-    -name: release
+    - release:
         dependencies: 
-            - rust
+            - rust # add rust compiler as a dependency for cargo build
         cmd: 
             - cargo build --release
-    - name: check:
+    - check:
         dependencies: 
             - rust
             - clippy
@@ -236,40 +207,55 @@ clean:
         - del target
 ```
 
-## variables and params
-
-### data types
-
-* int
-* float
-* string
-* bool
-* enum
+## Environment variables
 
 ### global configs
 
 ```yaml
-global-configs:
-    IP_ADDR: 
-        type: string
+global-env-vars:
+    - IP_ADDR: 
         default: 127.0.0.1
-    PORT: 
-        type: int
+    - PORT: 
         default: 80
-    BUILD_MODE: 
-        type: debug|release  # enum type
+    - BUILD_MODE: 
         default: debug
 ```
 
 ### param
 
 ```yaml
-run:
-    params:
-        - PORT: 
-            type: int
-            default: 80
+tasks:
+    listen:
+        env-vars:
+            - PORT: 
+                default: 80
+    cmd:
+        - nc -l -p $PORT
 ```
+
+### env validation
+
+validation types:
+
+1. number
+1. integer
+1. float
+1. bool
+1. enum(v1, v2, v3, ...)
+
+```yaml
+global-env-vars:
+    - PORT: 
+        default: 5
+        validation: integer
+    - build-mode: 
+        default: debug
+        validation: enum(debug,release)
+```
+
+### bake cache
+
+bake can save your env setup on a file
 
 ## Plugin system
 
