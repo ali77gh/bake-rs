@@ -45,7 +45,7 @@ Now you have many ways to run your tasks:
 ### CLI
 
 ```sh
-$ bake show
+$ bake --show
 
 [1] clean: this task removes what you build
 [2] hello: this task says hello
@@ -88,7 +88,11 @@ Enter task name or [index] to run:
 
 ### GUI
 
-TODO
+```sh
+bake --gui
+```
+
+<img width=300 src="./screenshots/simple_ui.png">
 
 ### Web
 
@@ -180,6 +184,8 @@ tasks:
             - cargo test
 ```
 
+<img width=300 src="./screenshots/dependency_manager.png">
+
 ### Run other tasks from a task
 
 ```yaml
@@ -209,12 +215,10 @@ clean:
 
 ## Environment variables
 
-### global configs
+### global env
 
 ```yaml
 global-env-vars:
-    - IP_ADDR: 
-        default: 127.0.0.1
     - PORT: 
         default: 80
     - BUILD_MODE: 
@@ -233,15 +237,17 @@ tasks:
         - nc -l -p $PORT
 ```
 
+<img width=300 src="./screenshots/env_vars_and_params.png">
+
 ### env validation
 
-validation types:
+supported validation:
 
 1. number
 1. integer
 1. float
 1. bool
-1. enum(v1, v2, v3, ...)
+1. enum(variation1|variation2|variation3| ...)
 
 ```yaml
 global-env-vars:
@@ -250,7 +256,7 @@ global-env-vars:
         validation: integer
     - build-mode: 
         default: debug
-        validation: enum(debug,release)
+        validation: enum(debug|release)
 ```
 
 ### bake cache
