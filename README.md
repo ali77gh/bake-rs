@@ -98,20 +98,10 @@ bake --gui
 
 With web interface you can run commands remotely and see result.
 
-First you need to configure server in yaml file like:
-
-```yaml
-server:
-    username: USERNAME
-    password: PASSWORD
-    default-port: 3001
-    public-serve: ./public_path
-```
-
 You can start server by running:
 
 ```sh
-bake --start-server --port 3000
+bake --start-server --port 3000 --set-password PASS
 ```
 
 hint: with web interface you can run some commands on your remote server by clicking a button!
@@ -146,6 +136,8 @@ bake aborting hello
 Note: task 'echo 3' will not run.
 
 ## Build dependencies
+
+TODO: how to check version?
 
 Sometimes you need some stuff installed on system to run a command.
 
@@ -239,6 +231,9 @@ tasks:
 
 <img width=300 src="./screenshots/env_vars_and_params.png">
 
+TODO: how to pass param to other tasks?
+TODO: optional config for task params
+
 ### env validation
 
 supported validation:
@@ -261,18 +256,16 @@ global-env-vars:
 
 ### bake cache
 
-bake can save your env setup on a file
+bake can save your env setups on a file 'bake.cache' make sure you add this file to gitignore to prevent leaking your API_KEYS
 
 ## Plugin system
 
-You can import other people
+You can import other peoples bake.yaml and call there tasks from your tasks
 
 ```yaml
 plugins:
     - name: fs
         url: https://github.com/TODO
-    - name: git
-        url: https://github.com/TODO
     - name: android
-        url: https://github.com/TODO
+        file: ./bakery/android.yaml
 ```
