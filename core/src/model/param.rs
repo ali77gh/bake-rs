@@ -2,13 +2,15 @@ pub struct Param {
     name: String,
     validation: ParamValidation,
     value: Option<String>,
+    default: Option<String>,
 }
 
 impl Param {
-    pub fn new(name: String, validation: ParamValidation) -> Self {
+    pub fn new(name: String, validation: ParamValidation, default: Option<String>) -> Self {
         Self {
             name,
             validation,
+            default,
             value: None,
         }
     }
@@ -17,6 +19,16 @@ impl Param {
         self.validation.validate(&value)?;
         self.value = Some(value);
         Ok(())
+    }
+
+    pub fn get_value(&self) -> Option<String> {
+        if let Some(x) = &self.value {
+            return Some(x.clone());
+        }
+        if let Some(x) = &self.default {
+            return Some(x.clone());
+        }
+        None
     }
 }
 
@@ -34,11 +46,11 @@ impl ParamValidation {
             ParamValidation::None => Ok(()),
             ParamValidation::Integer => match value.parse::<i64>() {
                 Ok(_) => Ok(()),
-                Err(err) => return Err(err.to_string()),
+                Err(err) => Err(err.to_string()),
             },
             ParamValidation::Number => match value.parse::<f64>() {
                 Ok(_) => Ok(()),
-                Err(err) => return Err(err.to_string()),
+                Err(err) => Err(err.to_string()),
             },
             ParamValidation::Enum(variants) => {
                 for variant in variants {
@@ -58,13 +70,13 @@ mod tests {
 
     #[test]
     fn validation_name_test() {
-        let param = Param::new("name".to_string(), ParamValidation::None);
+        let param = Param::new("name".to_string(), ParamValidation::None, None);
         assert_eq!(param.name, "name".to_string());
     }
 
     #[test]
     fn validation_none_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::None);
+        let mut param = Param::new("name".to_string(), ParamValidation::None, None);
         assert_eq!(param.value, None);
         assert_eq!(param.set_value("1234".to_string()), Ok(()));
         assert_eq!(param.value, Some("1234".to_string()));
@@ -72,7 +84,7 @@ mod tests {
 
     #[test]
     fn validation_integer_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::Integer);
+        let mut param = Param::new("name".to_string(), ParamValidation::Integer, None);
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -86,7 +98,7 @@ mod tests {
 
     #[test]
     fn validation_number_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::Number);
+        let mut param = Param::new("name".to_string(), ParamValidation::Number, None);
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -107,7 +119,7 @@ mod tests {
     #[test]
     fn validation_enum() {
         let validation = ParamValidation::Enum(vec!["debug".to_string(), "release".to_string()]);
-        let mut param = Param::new("name".to_string(), validation);
+        let mut param = Param::new("name".to_string(), validation, None);
 
         assert_eq!(param.value, None);
         assert_eq!(
