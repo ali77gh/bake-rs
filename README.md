@@ -152,6 +152,8 @@ dependencies:
         install-link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
 
     - clippy:
+        dependencies:
+            - rust # dependencies can depend on other dependencies
         check: cargo clippy --version
         install-cmd: cargo install clippy # install button will automatically install
 ```

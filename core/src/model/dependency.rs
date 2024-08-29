@@ -3,6 +3,8 @@ use super::command::Command;
 pub struct Dependency {
     name: String,
 
+    dependencies: Vec<Dependency>,
+
     check_command: Option<Command>,
     check_command_linux: Option<Command>,
     check_command_macos: Option<Command>,
