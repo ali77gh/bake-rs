@@ -257,9 +257,8 @@ TODO: optional config for task params
 
 supported validation:
 
-1. number
+1. number (float or integer)
 1. integer
-1. float
 1. bool
 1. enum(variation1|variation2|variation3| ...)
 

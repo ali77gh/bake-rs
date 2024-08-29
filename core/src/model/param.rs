@@ -6,13 +6,20 @@ pub struct Param {
 }
 
 impl Param {
-    pub fn new(name: String, validation: ParamValidation, default: Option<String>) -> Self {
-        Self {
+    pub fn new(
+        name: String,
+        validation: ParamValidation,
+        default: Option<String>,
+    ) -> Result<Self, String> {
+        if let Some(default) = &default {
+            validation.validate(&default)?;
+        }
+        Ok(Self {
             name,
             validation,
             default,
             value: None,
-        }
+        })
     }
 
     pub fn set_value(&mut self, value: String) -> Result<(), String> {
@@ -70,13 +77,13 @@ mod tests {
 
     #[test]
     fn validation_name_test() {
-        let param = Param::new("name".to_string(), ParamValidation::None, None);
+        let param = Param::new("name".to_string(), ParamValidation::None, None).unwrap();
         assert_eq!(param.name, "name".to_string());
     }
 
     #[test]
     fn validation_none_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::None, None);
+        let mut param = Param::new("name".to_string(), ParamValidation::None, None).unwrap();
         assert_eq!(param.value, None);
         assert_eq!(param.set_value("1234".to_string()), Ok(()));
         assert_eq!(param.value, Some("1234".to_string()));
@@ -84,7 +91,7 @@ mod tests {
 
     #[test]
     fn validation_integer_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::Integer, None);
+        let mut param = Param::new("name".to_string(), ParamValidation::Integer, None).unwrap();
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -98,7 +105,7 @@ mod tests {
 
     #[test]
     fn validation_number_test() {
-        let mut param = Param::new("name".to_string(), ParamValidation::Number, None);
+        let mut param = Param::new("name".to_string(), ParamValidation::Number, None).unwrap();
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -119,7 +126,7 @@ mod tests {
     #[test]
     fn validation_enum() {
         let validation = ParamValidation::Enum(vec!["debug".to_string(), "release".to_string()]);
-        let mut param = Param::new("name".to_string(), validation, None);
+        let mut param = Param::new("name".to_string(), validation, None).unwrap();
 
         assert_eq!(param.value, None);
         assert_eq!(
