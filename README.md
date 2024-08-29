@@ -278,12 +278,18 @@ bake can save your env setups on a file 'bake.cache' make sure you add this file
 
 ## Plugin system
 
-You can import other peoples bake.yaml and call there tasks from your tasks
+You can import other peoples '.yaml' files and call there tasks from your tasks or depend on their dependencies.
 
 ```yaml
 plugins:
     - name: fs
-        url: https://github.com/TODO
-    - name: android
-        file: ./bakery/android.yaml
+        path: ./bakery/fs.yaml
 ```
+
+You can install/update plugins from internet by running:
+
+```sh
+bake --install http://github.com/path_to_plugin.yaml
+```
+
+Note: you can also write your local plugins for your project.
