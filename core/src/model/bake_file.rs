@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{dependency::Dependency, param::Param, task::Task};
+use super::{dependency::Dependency, param::Param, plugin::Plugin, task::Task};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct BakeFile {
+    plugins: Option<Vec<Plugin>>,
     global_env_vars: Option<Vec<Param>>,
     dependencies: Option<Vec<Dependency>>,
     tasks: Option<Vec<Task>>,
@@ -19,6 +20,15 @@ impl BakeFile {
 
     pub fn to_yaml(&self) -> String {
         serde_yaml::to_string(self).unwrap()
+    }
+
+    pub fn plugins(&self) -> &Vec<Plugin> {
+        const EMPTY: &'static Vec<Plugin> = &vec![];
+        if let Some(x) = &self.plugins {
+            return x;
+        } else {
+            return EMPTY;
+        }
     }
 
     pub fn global_env_vars(&self) -> &Vec<Param> {
@@ -71,6 +81,10 @@ mod tests {
         );
 
         let bake_file = BakeFile {
+            plugins: Some(vec![Plugin::new(
+                "fs".to_string(),
+                ".bake/fs.yaml".to_string(),
+            )]),
             global_env_vars: Some(vec![Param::new("USERNAME".to_string(), None)]),
             dependencies: Some(vec![Dependency::new(
                 "rust".to_string(),
@@ -98,6 +112,9 @@ mod tests {
     #[test]
     fn yaml_parser_test() {
         let yaml = "
+plugins:
+- name: fs
+  path: .bake/fs.yaml
 global_env_vars:
 - name: PORT
   validation: Integer
