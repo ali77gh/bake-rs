@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Param {
     name: String,
     validation: Option<ParamValidation>,
@@ -31,7 +31,7 @@ impl Param {
 
 // TODO specify min and max for numbers and string length
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum ParamValidation {
     Number, // Integer and float
     Integer,

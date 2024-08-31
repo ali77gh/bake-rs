@@ -16,8 +16,36 @@ impl BakeFile {
             Err(e) => Err(e.to_string()),
         }
     }
+
     pub fn to_yaml(&self) -> String {
         serde_yaml::to_string(self).unwrap()
+    }
+
+    pub fn global_env_vars(&self) -> &Vec<Param> {
+        const EMPTY: &'static Vec<Param> = &vec![];
+        if let Some(x) = &self.global_env_vars {
+            return x;
+        } else {
+            return EMPTY;
+        }
+    }
+
+    pub fn dependencies(&self) -> &Vec<Dependency> {
+        const EMPTY: &'static Vec<Dependency> = &vec![];
+        if let Some(x) = &self.dependencies {
+            return x;
+        } else {
+            return EMPTY;
+        }
+    }
+
+    pub fn tasks(&self) -> &Vec<Task> {
+        const EMPTY: &'static Vec<Task> = &vec![];
+        if let Some(x) = &self.tasks {
+            return x;
+        } else {
+            return EMPTY;
+        }
     }
 }
 

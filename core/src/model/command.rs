@@ -68,6 +68,18 @@ impl FunctionCall {
             params,
         ))
     }
+
+    pub fn namespace(&self) -> &str {
+        &self.namespace
+    }
+
+    pub fn function(&self) -> &str {
+        &self.function
+    }
+
+    pub fn params(&self) -> &Vec<String> {
+        &self.params
+    }
 }
 
 #[cfg(test)]
