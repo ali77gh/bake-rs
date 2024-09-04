@@ -1,27 +1,31 @@
 # bake-rs
 
-Note: This project is not ready! it's just an idea.
+> [!WARNING]  
+> This project is not ready to use yet! it's just an idea.
 
-Better Make written in Rust.
+Bake is a universal cross-platform script runner written in Rust which can be used for any kind of project or application.
 
-Note: bake can be used for any type of projects (it's not only for rust) see [examples](TODO)
+Essentially, you put your tasks in a YAML file. Then, you have an interactive CLI + TUI + GUI interface to run these tasks, enabling your less tech-savvy coworkers (including yourself six months later, having forgotten all the commands) to execute your commands with the click of a button!
+
+Bake can also help users install dependencies and set up environment variables. Furthermore, it supports a plugin system that allows you to import other people's bakefile.yaml configurations into your own.
 
 ## Table of content
 
-1. Basic
-    1. Init
-    1. CLI
-    1. TUI
-    1. GUI
-    1. Web
-1. Error handling
-1. Build dependencies
-1. Run other tasks from a task
-1. Platform specific commands
-1. Plugin system
-1. Task param
-1. Template engine
-1. Global variables
+- [Basic](#basic)
+   * [CLI](#cli)
+   * [TUI](#tui)
+   * [GUI](#gui)
+   * [Web](#web)
+- [Error handling](#error-handling)
+- [Build dependencies](#build-dependencies)
+   * [Run other tasks from a task](#run-other-tasks-from-a-task)
+- [Platform specific commands](#platform-specific-commands)
+- [Environment variables](#environment-variables)
+   * [global env](#global-env)
+   * [param](#param)
+   * [env validation](#env-validation)
+   * [bake cache](#bake-cache)
+- [Plugin system](#plugin-system)
 
 ## Basic
 
@@ -108,7 +112,7 @@ hint: with web interface you can run some commands on your remote server by clic
 
 you can set it up on your raspberry pi and use it as a web controller for your project.
 
-Warning: if you are using it over internet make sure its behind an encryption layer (don't leak your username password)
+Warning: if you are using it over internet make sure its behind an encryption layer (don't leak your password)
 
 ## Error handling
 
@@ -224,7 +228,7 @@ tasks:
         - del target
 ```
 
-Note: If you run this on a windows system only the windows commands will run but as you did'nt specify commands_linux and commands_macos if you run this task on Linux or MacOS it will run default commands.
+Note: If you run this on a windows system only the windows commands will run but as you did not specify commands_linux and commands_macos if you run this task on Linux or MacOS it will run default commands.
 
 ## Environment variables
 
@@ -232,22 +236,22 @@ Note: If you run this on a windows system only the windows commands will run but
 
 ```yaml
 global-env-vars:
-    - PORT: 
-        default: 80
-    - BUILD_MODE: 
-        default: debug
+  - name: PORT
+    value: 80
+
+  - name: BUILD_MODE 
+    value: debug
 ```
 
 ### param
 
 ```yaml
 tasks:
-    listen:
-        env-vars:
-            - PORT: 
-                default: 80
-    cmd:
-        - nc -l -p $PORT
+  - name: listen
+    env-vars:
+      - name: PORT 
+        value: 80
+    cmd: [ nc -l -p $PORT ]
 ```
 
 <img width=300 src="./screenshots/env_vars_and_params.png">
@@ -285,7 +289,7 @@ You can import other peoples '.yaml' files and call there tasks from your tasks 
 ```yaml
 plugins:
   - name: fs
-    path: ./bakery/fs.yaml
+    path: ./.bake/fs.yaml
 ```
 
 You can install/update plugins from internet by running:
