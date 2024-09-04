@@ -14,10 +14,10 @@ pub struct Dependency {
     check_windows: Option<Vec<String>>,
     check_macos: Option<Vec<String>>,
 
-    link: Option<Vec<String>>,
-    link_linux: Option<Vec<String>>,
-    link_windows: Option<Vec<String>>,
-    link_macos: Option<Vec<String>>,
+    link: Option<String>,
+    link_linux: Option<String>,
+    link_windows: Option<String>,
+    link_macos: Option<String>,
 
     command: Option<Vec<String>>,
     command_linux: Option<Vec<String>>,
@@ -52,16 +52,22 @@ impl Dependency {
         }
     }
 
-    pub fn link(&self) -> Result<Vec<String>, String> {
-        let links = platform_specific(
-            self.link.as_ref(),
-            self.link_linux.as_ref(),
-            self.link_windows.as_ref(),
-            self.link_macos.as_ref(),
-        );
+    pub fn link(&self) -> Result<String, String> {
+        #[cfg(target_os = "linux")]
+        if let Some(s) = &self.link_linux {
+            return Ok(s.to_string());
+        }
+        #[cfg(target_os = "windows")]
+        if let Some(s) = self.link_windows {
+            return Ok(s.to_string());
+        }
+        #[cfg(target_os = "macos")]
+        if let Some(s) = self.link_macos {
+            return Ok(s.to_string());
+        }
 
-        if let Some(links) = links {
-            Ok(links.to_vec())
+        if let Some(link) = &self.link {
+            Ok(link.to_string())
         } else {
             Err(format!("{} is not supported", get_platform_name()))
         }
@@ -95,10 +101,10 @@ impl Dependency {
         check_linux: Option<Vec<String>>,
         check_windows: Option<Vec<String>>,
         check_macos: Option<Vec<String>>,
-        link: Option<Vec<String>>,
-        link_linux: Option<Vec<String>>,
-        link_windows: Option<Vec<String>>,
-        link_macos: Option<Vec<String>>,
+        link: Option<String>,
+        link_linux: Option<String>,
+        link_windows: Option<String>,
+        link_macos: Option<String>,
         command: Option<Vec<String>>,
         command_linux: Option<Vec<String>>,
         command_windows: Option<Vec<String>>,

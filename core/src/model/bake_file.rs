@@ -93,7 +93,7 @@ mod tests {
                 None,
                 None,
                 None,
-                Some(vec!["https://somewhere.com".to_string()]),
+                Some("https://somewhere.com".to_string()),
                 None,
                 None,
                 None,
@@ -113,29 +113,30 @@ mod tests {
     fn yaml_parser_test() {
         let yaml = "
 plugins:
-- name: fs
-  path: .bake/fs.yaml
+  - name: fs
+    path: .bake/fs.yaml
+
 global_env_vars:
-- name: PORT
-  validation: Integer
-  value: 80
+  - name: PORT
+    validation: Integer
+    value: 80
 
 dependencies:
-- name: rust
-  dependencies: [ rust ]
-  check: [ rustc --version ]
-  link: [ https://somewhere.com ]
-  command_linux: [ sudo apt install something ]
+  - name: rust
+    dependencies: [ rust ]
+    check: [ rustc --version ]
+    link: https://somewhere.com
+    command_linux: [ sudo apt install something ]
 
 tasks:
-- name: clean
-  help_msg: removes some stuff
-  dependencies: [ rust ]
-  params:
-  - name: USERNAME
-  commands:
-  - cmd1
-  - cmd2
+  - name: clean
+    help_msg: removes some stuff
+    dependencies: [ rust ]
+    params:
+      - name: USERNAME
+    commands:
+      - cmd1
+      - cmd2
 ";
         let bake_file = BakeFile::from_yaml(yaml).unwrap();
 
