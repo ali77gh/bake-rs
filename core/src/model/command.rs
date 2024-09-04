@@ -6,16 +6,17 @@ pub enum Command {
     FunctionCall(FunctionCall),
 }
 
-impl Command {
-    pub fn from_str(str: impl AsRef<str>) -> Result<Self, String> {
-        let str = str.as_ref().trim();
+impl TryFrom<&str> for Command {
+    type Error = String;
+    fn try_from(str: &str) -> Result<Self, String> {
+        let str = str.trim();
         if str.is_empty() {
             return Err("is empty".to_string());
         }
         if str.starts_with('@') {
-            return Ok(Self::FunctionCall(FunctionCall::from_str(str)?));
+            Ok(Self::FunctionCall(FunctionCall::try_from(str)?))
         } else {
-            return Ok(Self::ShellCommand(str.to_string()));
+            Ok(Self::ShellCommand(str.to_string()))
         }
     }
 }
@@ -36,8 +37,24 @@ impl FunctionCall {
         }
     }
 
-    pub fn from_str(str: impl AsRef<str>) -> Result<Self, String> {
-        let str = str.as_ref().trim();
+    pub fn namespace(&self) -> &str {
+        &self.namespace
+    }
+
+    pub fn function(&self) -> &str {
+        &self.function
+    }
+
+    pub fn params(&self) -> &Vec<String> {
+        &self.params
+    }
+}
+
+impl TryFrom<&str> for FunctionCall {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, String> {
+        let str = value.trim();
 
         // Safety input string at
         let str = &str[1..]; // pop '@' from begin
@@ -46,7 +63,7 @@ impl FunctionCall {
         let function_id = function_id.ok_or("syntax error".to_string())?;
 
         let sp = function_id.split('.').collect::<Vec<&str>>();
-        let namespace = sp.get(0).ok_or("syntax error".to_string())?;
+        let namespace = sp.first().ok_or("syntax error".to_string())?;
         let function_name = sp.get(1).ok_or("syntax error".to_string())?;
 
         let params = str
@@ -68,18 +85,6 @@ impl FunctionCall {
             params,
         ))
     }
-
-    pub fn namespace(&self) -> &str {
-        &self.namespace
-    }
-
-    pub fn function(&self) -> &str {
-        &self.function
-    }
-
-    pub fn params(&self) -> &Vec<String> {
-        &self.params
-    }
 }
 
 #[cfg(test)]
@@ -88,12 +93,12 @@ mod tests {
 
     #[test]
     fn command_parser_shell_command_test() {
-        let command = Command::from_str("cp from to");
+        let command = Command::try_from("cp from to");
         assert_eq!(command, Ok(Command::ShellCommand("cp from to".to_string())));
     }
     #[test]
     fn command_parser_function_call_test() {
-        let command = Command::from_str("@fs.copy from to");
+        let command = Command::try_from("@fs.copy from to");
         assert_eq!(
             command,
             Ok(Command::FunctionCall(FunctionCall::new(
@@ -107,28 +112,28 @@ mod tests {
     #[test]
     fn errors() {
         // empty
-        assert_eq!(Command::from_str(""), Err("is empty".to_string()));
+        assert_eq!(Command::try_from(""), Err("is empty".to_string()));
 
         // missing dot
-        let command = Command::from_str("@fscopy from to");
+        let command = Command::try_from("@fscopy from to");
         assert_eq!(command, Err("syntax error".to_string()));
 
         // missing namespace
-        let command = Command::from_str("@.copy from to");
+        let command = Command::try_from("@.copy from to");
         assert_eq!(
             command,
             Err("syntax error(namespace is missing)".to_string())
         );
 
         // missing function name
-        let command = Command::from_str("@fs. from to");
+        let command = Command::try_from("@fs. from to");
         assert_eq!(
             command,
             Err("syntax error(function name is missing)".to_string())
         );
 
         // missing empty params
-        let command = Command::from_str("@fs.copy");
+        let command = Command::try_from("@fs.copy");
         assert_eq!(
             command,
             Ok(Command::FunctionCall(FunctionCall {

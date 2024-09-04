@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 pub fn platform_specific<'a>(
     common: Option<&'a Vec<String>>,
     linux: Option<&'a Vec<String>>,
@@ -22,7 +24,7 @@ pub fn platform_specific<'a>(
             return Some(s);
         }
     }
-    return common;
+    common
 }
 
 pub fn get_platform_name() -> &'static str {

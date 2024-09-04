@@ -45,10 +45,10 @@ impl Dependency {
         if let Some(commands) = commands {
             commands
                 .iter()
-                .map(|str| Command::from_str(str))
+                .map(|x| Command::try_from(x.as_str()))
                 .collect::<Result<Vec<Command>, String>>()
         } else {
-            return Err(format!("{} is not supported", get_platform_name()));
+            Err(format!("{} is not supported", get_platform_name()))
         }
     }
 
@@ -61,9 +61,9 @@ impl Dependency {
         );
 
         if let Some(links) = links {
-            return Ok(links.to_vec());
+            Ok(links.to_vec())
         } else {
-            return Err(format!("{} is not supported", get_platform_name()));
+            Err(format!("{} is not supported", get_platform_name()))
         }
     }
 
@@ -78,14 +78,15 @@ impl Dependency {
         if let Some(commands) = commands {
             commands
                 .iter()
-                .map(|str| Command::from_str(str))
+                .map(|x| Command::try_from(x.as_str()))
                 .collect::<Result<Vec<Command>, String>>()
         } else {
-            return Err(format!("{} is not supported", get_platform_name()));
+            Err(format!("{} is not supported", get_platform_name()))
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Dependency {
     pub fn new(
         name: String,

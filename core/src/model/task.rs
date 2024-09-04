@@ -17,6 +17,7 @@ pub struct Task {
     commands_macos: Option<Vec<String>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Task {
     pub fn new(
         name: String,
@@ -67,10 +68,10 @@ impl Task {
         if let Some(commands) = commands {
             commands
                 .iter()
-                .map(|str| Command::from_str(str))
+                .map(|x| Command::try_from(x.as_str()))
                 .collect::<Result<Vec<Command>, String>>()
         } else {
-            return Err(format!("{} is not supported", get_platform_name()));
+            Err(format!("{} is not supported", get_platform_name()))
         }
     }
 }

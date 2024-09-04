@@ -23,38 +23,38 @@ impl BakeFile {
     }
 
     pub fn plugins(&self) -> &Vec<Plugin> {
-        const EMPTY: &'static Vec<Plugin> = &vec![];
+        const EMPTY: &Vec<Plugin> = &vec![];
         if let Some(x) = &self.plugins {
-            return x;
+            x
         } else {
-            return EMPTY;
+            EMPTY
         }
     }
 
     pub fn global_env_vars(&self) -> &Vec<Param> {
-        const EMPTY: &'static Vec<Param> = &vec![];
+        const EMPTY: &Vec<Param> = &vec![];
         if let Some(x) = &self.global_env_vars {
-            return x;
+            x
         } else {
-            return EMPTY;
+            EMPTY
         }
     }
 
     pub fn dependencies(&self) -> &Vec<Dependency> {
-        const EMPTY: &'static Vec<Dependency> = &vec![];
+        const EMPTY: &Vec<Dependency> = &vec![];
         if let Some(x) = &self.dependencies {
-            return x;
+            x
         } else {
-            return EMPTY;
+            EMPTY
         }
     }
 
     pub fn tasks(&self) -> &Vec<Task> {
-        const EMPTY: &'static Vec<Task> = &vec![];
+        const EMPTY: &Vec<Task> = &vec![];
         if let Some(x) = &self.tasks {
-            return x;
+            x
         } else {
-            return EMPTY;
+            EMPTY
         }
     }
 }
