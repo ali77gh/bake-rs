@@ -29,15 +29,15 @@ Make a file named 'bakefile.yaml' in root of your project
 
 ```yaml
 tasks:
-    - clean:
-        help-msg: this task removes what you build
-        cmd: 
-            - rm ./build
-    - hello:
-        help-msg: this task says hello
-        cmd: 
-            - echo hello world
-            - echo hello from bake
+  - name: clean
+    help_msg: this task removes what you build
+    commands: [ rm ./build ]
+
+  - name: hello
+    help_msg: this task says hello
+    commands: 
+      - echo hello world
+      - echo hello from bake
 ```
 
 Now you have many ways to run your tasks:
@@ -114,11 +114,11 @@ Warning: if you are using it over internet make sure its behind an encryption la
 
 ```yaml
 tasks:
-    hello:
-        cmd: 
-            - echo 1
-            - echo2 # this is an error
-            - echo 3
+  - name: hello
+    commands: 
+      - echo 1
+      - echo2 # this is an error
+      - echo 3
 ```
 
 ```sh
@@ -147,39 +147,36 @@ check this out:
 
 ```yaml
 dependencies:
-    - rust:
-        check: cargo --version
-        install-link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
+  - name: rust
+    check: [ cargo --version ]
+    link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
 
-    - clippy:
-        dependencies:
-            - rust # dependencies can depend on other dependencies
-        check: cargo clippy --version
-        install-cmd: cargo install clippy # install button will automatically install
+  - name: clippy
+    dependencies: [ rust ] # dependencies can depend on other dependencies
+    check: [ cargo clippy --version ]
+    command: [ cargo install clippy ] # install button will automatically install
 
-    - check-file-exist-dependency:
-        check: ls target # you can check if a file or directory exist like this
-        install-cmd: cargo build
+  - name: check-file-exist-dependency
+    check: [ ls target ] # you can check if a file or directory exist like this
+    command: [ cargo build ]
 ```
 
 Now you tasks can depends on dependencies
 
 ```yaml
 tasks:
-    - release:
-        dependencies: 
-            - rust # add rust compiler as a dependency for cargo build
-        cmd: 
-            - cargo build --release
-    - check:
-        dependencies: 
-            - rust
-            - clippy
-        cmd:
-            - cargo check
-            - cargo clippy
-            - cargo fmt --check
-            - cargo test
+  - name: release
+    dependencies: [ rust ] 
+    commands: 
+        - cargo build --release
+
+  - name: check
+    dependencies: [ rust, clippy ]
+    commands:
+      - cargo check
+      - cargo clippy
+      - cargo fmt --check
+      - cargo test
 ```
 
 <img width=300 src="./screenshots/dependency_manager.png">
@@ -191,25 +188,27 @@ You can also specify different commands or links for installing on different pla
 
 ```yaml
 dependencies:
-    - wget:
-        check: wget --version
-        install-cmd-linux: sudo apt install wget # linux only
-        install-link: https://www.gnu.org/software/wget/ # mac and windows
+  - name: wget
+    check: [ wget --version ]
+    command_linux: sudo apt install wget # linux only
+    link: https://www.gnu.org/software/wget/ # mac and windows
 ```
 
 ### Run other tasks from a task
 
+For running other task from your task you need to put a '@' at the beginning of your command (so the parser will know it's a bake command and not a system binary)
+
 ```yaml
 tasks:
-    release:
-        dependencies: 
-            - rust
-        cmd: 
-            - tasks.check # run other tasks (before or after your commands)
-            - cargo build --release
-    check:
-        cmd:
-            - cargo check
+  - name: release
+    dependencies: [ rust ]
+    commands: 
+      - "@tasks.check" # run other tasks (before or after your commands)
+      - cargo build --release
+
+  - name: check
+    cmd:
+      - cargo check
 ```
 
 ## Platform specific commands
@@ -217,12 +216,15 @@ tasks:
 Sometimes you need to run different commands on different operating systems:
 
 ```yaml
-clean:
-    cmd: # default  
+tasks:
+  - name: clean
+    commands: # default  
         - rm ./target
-    cmd-windows: 
+    commands_windows: 
         - del target
 ```
+
+Note: If you run this on a windows system only the windows commands will run but as you did'nt specify commands_linux and commands_macos if you run this task on Linux or MacOS it will run default commands.
 
 ## Environment variables
 
@@ -251,7 +253,6 @@ tasks:
 <img width=300 src="./screenshots/env_vars_and_params.png">
 
 TODO: how to pass param to other tasks?
-TODO: optional config for task params
 
 ### env validation
 
@@ -264,12 +265,13 @@ supported validation:
 
 ```yaml
 global-env-vars:
-    - PORT: 
-        default: 5
-        validation: integer
-    - build-mode: 
-        default: debug
-        validation: enum(debug|release)
+  - name: PORT
+    value: 5
+    validation: Integer
+
+  - name: build-mode
+    value: debug
+    validation: enum(debug|release)
 ```
 
 ### bake cache
@@ -282,8 +284,8 @@ You can import other peoples '.yaml' files and call there tasks from your tasks 
 
 ```yaml
 plugins:
-    - name: fs
-        path: ./bakery/fs.yaml
+  - name: fs
+    path: ./bakery/fs.yaml
 ```
 
 You can install/update plugins from internet by running:
