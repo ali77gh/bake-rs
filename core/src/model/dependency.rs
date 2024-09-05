@@ -19,10 +19,10 @@ pub struct Dependency {
     link_windows: Option<String>,
     link_macos: Option<String>,
 
-    command: Option<Vec<String>>,
-    command_linux: Option<Vec<String>>,
-    command_windows: Option<Vec<String>>,
-    command_macos: Option<Vec<String>>,
+    commands: Option<Vec<String>>,
+    commands_linux: Option<Vec<String>>,
+    commands_windows: Option<Vec<String>>,
+    commands_macos: Option<Vec<String>>,
 }
 
 impl Dependency {
@@ -75,10 +75,10 @@ impl Dependency {
 
     pub fn installation_command(&self) -> Result<Vec<Command>, String> {
         let commands = platform_specific(
-            self.command.as_ref(),
-            self.command_linux.as_ref(),
-            self.command_windows.as_ref(),
-            self.command_macos.as_ref(),
+            self.commands.as_ref(),
+            self.commands_linux.as_ref(),
+            self.commands_windows.as_ref(),
+            self.commands_macos.as_ref(),
         );
 
         if let Some(commands) = commands {
@@ -105,10 +105,10 @@ impl Dependency {
         link_linux: Option<String>,
         link_windows: Option<String>,
         link_macos: Option<String>,
-        command: Option<Vec<String>>,
-        command_linux: Option<Vec<String>>,
-        command_windows: Option<Vec<String>>,
-        command_macos: Option<Vec<String>>,
+        commands: Option<Vec<String>>,
+        commands_linux: Option<Vec<String>>,
+        commands_windows: Option<Vec<String>>,
+        commands_macos: Option<Vec<String>>,
     ) -> Self {
         Self {
             name,
@@ -121,10 +121,10 @@ impl Dependency {
             link_linux,
             link_windows,
             link_macos,
-            command,
-            command_linux,
-            command_windows,
-            command_macos,
+            commands,
+            commands_linux,
+            commands_windows,
+            commands_macos,
         }
     }
 }
