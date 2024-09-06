@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{dependency::Dependency, param::Param, plugin::Plugin, task::Task};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct BakeFile {
+pub struct BakeFile {
     plugins: Option<Vec<Plugin>>,
     global_env_vars: Option<Vec<Param>>,
     dependencies: Option<Vec<Dependency>>,
