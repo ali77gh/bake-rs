@@ -1,6 +1,10 @@
 mod capabilities;
+mod dependency_viewmodel;
+
+use std::rc::Rc;
 
 use capabilities::Capabilities;
+use dependency_viewmodel::DependencyViewModel;
 
 use crate::model::bake_file::BakeFile;
 
@@ -8,16 +12,25 @@ const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
     bake_file: BakeFile,
-    caps: Box<dyn Capabilities>,
+
+    dependencies: Vec<DependencyViewModel>,
+    caps: Rc<dyn Capabilities>,
 }
 
 impl BakeViewModel {
     /// returns None if file not bakefile exist
-    pub fn new(caps: Box<dyn Capabilities>) -> Result<Self, String> {
+    pub fn new(caps: Rc<dyn Capabilities>) -> Result<Self, String> {
         if let Some(content) = caps.read_file(BAKE_FILE_NAME) {
+            let bakefile = BakeFile::from_yaml(&content)?;
+            let dependencies = bakefile
+                .dependencies()
+                .iter()
+                .map(|d| DependencyViewModel::new(Rc::clone(&caps), d.clone()))
+                .collect();
             Ok(Self {
-                bake_file: BakeFile::from_yaml(&content)?,
+                bake_file: bakefile,
                 caps,
+                dependencies,
             })
         } else {
             Err("bakefile not found".to_string())
@@ -71,12 +84,20 @@ tasks:
                 .to_string(),
             )
         }
+
+        fn execute(&self, _: &str) -> Result<String, String> {
+            Ok("done".to_string())
+        }
+
+        fn open_link(&self, _: &str) -> Result<(), String> {
+            Ok(())
+        }
     }
 
     #[test]
     fn test_name() {
         let cap = TestCap;
-        let r = BakeViewModel::new(Box::new(cap));
+        let r = BakeViewModel::new(Rc::new(cap));
         assert_eq!(
             r.unwrap().bake_file().tasks().get(0).unwrap().name(),
             "clean".to_string()

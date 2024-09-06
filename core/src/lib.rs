@@ -2,4 +2,4 @@
 
 pub mod model;
 pub mod util;
-pub mod view_model;
+pub mod viewmodel;
