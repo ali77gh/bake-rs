@@ -15,6 +15,7 @@ pub struct DependencyViewModel {
     dependency: Dependency,
 }
 
+// TODO install dependencies of dependencies
 impl DependencyViewModel {
     pub fn new(capabilities: Rc<dyn Capabilities>, dependency: Dependency) -> Self {
         Self {
@@ -64,7 +65,7 @@ impl DependencyViewModel {
 }
 
 //TODO remove this filter (you should run function calls too!)
-fn filter_commands(commands: &Vec<Command>) -> Vec<&str> {
+pub fn filter_commands(commands: &Vec<Command>) -> Vec<&str> {
     commands
         .iter()
         .filter_map(|command| match command {

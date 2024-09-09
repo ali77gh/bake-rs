@@ -1,10 +1,12 @@
 mod capabilities;
 mod dependency_viewmodel;
+mod task_viewmodel;
 
 use std::rc::Rc;
 
 use capabilities::Capabilities;
 use dependency_viewmodel::DependencyViewModel;
+use task_viewmodel::TaskViewModel;
 
 use crate::model::bake_file::BakeFile;
 
@@ -14,6 +16,7 @@ pub struct BakeViewModel {
     bake_file: BakeFile,
 
     dependencies: Vec<DependencyViewModel>,
+    tasks: Vec<TaskViewModel>,
     caps: Rc<dyn Capabilities>,
 }
 
@@ -25,11 +28,18 @@ impl BakeViewModel {
             let dependencies = bakefile
                 .dependencies()
                 .iter()
-                .map(|d| DependencyViewModel::new(Rc::clone(&caps), d.clone()))
+                .map(|dependency| DependencyViewModel::new(Rc::clone(&caps), dependency.clone()))
+                .collect();
+
+            let tasks = bakefile
+                .tasks()
+                .iter()
+                .map(|task| TaskViewModel::new(Rc::clone(&caps), task.clone()))
                 .collect();
             Ok(Self {
                 bake_file: bakefile,
                 caps,
+                tasks,
                 dependencies,
             })
         } else {
