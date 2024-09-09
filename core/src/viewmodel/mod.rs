@@ -1,6 +1,6 @@
-mod capabilities;
-mod dependency_viewmodel;
-mod task_viewmodel;
+pub mod capabilities;
+pub mod dependency_viewmodel;
+pub mod task_viewmodel;
 
 use std::rc::Rc;
 
