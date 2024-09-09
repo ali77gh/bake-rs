@@ -1,12 +1,13 @@
 use core::viewmodel::capabilities::Capabilities;
-use core::viewmodel::BakeViewModel;
 use std::process::Command;
 use std::rc::Rc;
 
 fn main() {
     let caps = Rc::new(CLICapabilities);
 
-    let bake = BakeViewModel::new(caps).expect("bakefile not found");
+    caps.open_link("google.com").unwrap();
+
+    // let bake = BakeViewModel::new(caps).expect("bakefile not found");
 }
 
 struct CLICapabilities;
@@ -32,6 +33,15 @@ impl Capabilities for CLICapabilities {
     }
 
     fn open_link(&self, url: &str) -> Result<(), String> {
-        todo!()
+        let url = if !url.starts_with("http://") && !url.starts_with("https://") {
+            format!("http://{}", url)
+        } else {
+            url.to_owned()
+        };
+
+        match webbrowser::open(&url) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }

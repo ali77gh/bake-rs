@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 core = { path = "../core"}
+webbrowser = "1.0.1"
