@@ -1,3 +1,4 @@
+mod arg_parser;
 mod show_tasks;
 
 use core::viewmodel::capabilities::Capabilities;
@@ -5,10 +6,15 @@ use core::viewmodel::BakeViewModel;
 use std::process::Command;
 use std::rc::Rc;
 
+use arg_parser::get_args;
+
 fn main() {
     let bake = BakeViewModel::new(Rc::new(CLICapabilities)).expect("bakefile not found");
 
-    show_tasks::show_tasks(bake.tasks());
+    match get_args() {
+        arg_parser::ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),
+        arg_parser::ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
+    }
 }
 
 struct CLICapabilities;
