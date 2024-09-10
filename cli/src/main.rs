@@ -1,13 +1,14 @@
+mod show_tasks;
+
 use core::viewmodel::capabilities::Capabilities;
+use core::viewmodel::BakeViewModel;
 use std::process::Command;
 use std::rc::Rc;
 
 fn main() {
-    let caps = Rc::new(CLICapabilities);
+    let bake = BakeViewModel::new(Rc::new(CLICapabilities)).expect("bakefile not found");
 
-    caps.open_link("google.com").unwrap();
-
-    // let bake = BakeViewModel::new(caps).expect("bakefile not found");
+    show_tasks::show_tasks(bake.tasks());
 }
 
 struct CLICapabilities;

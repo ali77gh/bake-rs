@@ -51,6 +51,14 @@ impl BakeViewModel {
     pub fn bake_file(&self) -> &BakeFile {
         &self.bake_file
     }
+
+    pub fn dependencies(&self) -> &[DependencyViewModel] {
+        &self.dependencies
+    }
+
+    pub fn tasks(&self) -> &[TaskViewModel] {
+        &self.tasks
+    }
 }
 
 #[cfg(test)]
