@@ -69,7 +69,7 @@ impl Dependency {
         if let Some(link) = &self.link {
             Ok(link.to_string())
         } else {
-            Err(format!("{} is not supported", get_platform_name()))
+            Err(format!("no command available for {}", get_platform_name()))
         }
     }
 

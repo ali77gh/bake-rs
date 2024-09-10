@@ -14,6 +14,10 @@ fn main() {
     match get_args() {
         arg_parser::ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),
         arg_parser::ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
+        arg_parser::ParsedArgs::Command(x) => match bake.run(&x) {
+            Ok(std_out) => println!("{}", std_out.join("\n")),
+            Err(e) => println!("Error: \n{}", e),
+        },
     }
 }
 

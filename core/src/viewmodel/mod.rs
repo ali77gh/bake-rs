@@ -59,6 +59,20 @@ impl BakeViewModel {
     pub fn tasks(&self) -> &[TaskViewModel] {
         &self.tasks
     }
+
+    pub fn run(&self, name: &str) -> Result<Vec<String>, String> {
+        let task = self
+            .tasks()
+            .iter()
+            .filter(|task| task.name() == name)
+            .next();
+
+        if let Some(task) = task {
+            task.run()
+        } else {
+            Err(format!("task {} not found", name))
+        }
+    }
 }
 
 #[cfg(test)]
