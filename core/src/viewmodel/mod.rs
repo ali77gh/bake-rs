@@ -5,7 +5,7 @@ pub mod task_viewmodel;
 use std::rc::Rc;
 
 use capabilities::Capabilities;
-use dependency_viewmodel::DependencyViewModel;
+use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
 use task_viewmodel::TaskViewModel;
 
 use crate::model::bake_file::BakeFile;
@@ -60,14 +60,37 @@ impl BakeViewModel {
         &self.tasks
     }
 
-    pub fn run(&self, name: &str) -> Result<Vec<String>, String> {
-        let task = self
-            .tasks()
+    pub fn install_dependencies(&self, names: &Vec<String>) -> Result<(), String> {
+        for name in names {
+            self.install_dependency(name)?;
+        }
+        Ok(())
+    }
+
+    pub fn install_dependency(&self, name: &str) -> Result<(), String> {
+        let dependency = self
+            .dependencies()
             .iter()
-            .filter(|task| task.name() == name)
+            .filter(|dependency| dependency.name() == name)
             .next();
 
+        if let Some(dependency) = dependency {
+            dependency.try_install()?;
+            if dependency.is_installed() == IsInstalledState::NotInstalled {
+                Err(format!("failed to install {}", name))
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(format!("dependency {} not found", name))
+        }
+    }
+
+    pub fn run_task(&self, name: &str) -> Result<Vec<String>, String> {
+        let task = self.tasks().iter().filter(|task| task.is(name)).next();
+
         if let Some(task) = task {
+            self.install_dependencies(task.dependencies())?;
             task.run()
         } else {
             Err(format!("task {} not found", name))

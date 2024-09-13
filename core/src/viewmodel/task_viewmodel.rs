@@ -35,4 +35,12 @@ impl TaskViewModel {
     pub fn help_msg(&self) -> &Option<String> {
         self.task.help_msg()
     }
+
+    pub fn dependencies(&self) -> &Vec<String> {
+        const EMPTY: &Vec<String> = &vec![];
+        match self.task.dependencies() {
+            Some(x) => x,
+            None => EMPTY,
+        }
+    }
 }

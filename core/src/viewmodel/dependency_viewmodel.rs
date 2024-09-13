@@ -4,6 +4,7 @@ use crate::model::{command::Command, dependency::Dependency};
 
 use super::capabilities::Capabilities;
 
+#[derive(PartialEq)]
 pub enum IsInstalledState {
     Installed,
     NotInstalled,
@@ -48,6 +49,10 @@ impl DependencyViewModel {
     }
 
     pub fn try_install(&self) -> Result<(), String> {
+        if self.is_installed() == IsInstalledState::Installed {
+            return Ok(());
+        }
+
         if let Ok(commands) = &self.dependency.installation_command() {
             //TODO remove this filter (you should run function calls too!)
             let commands = filter_commands(&commands);
@@ -60,7 +65,7 @@ impl DependencyViewModel {
             return Ok(());
         }
 
-        Err("not installable".to_string())
+        Err(format!("{} is not installable", self.name()))
     }
 }
 
