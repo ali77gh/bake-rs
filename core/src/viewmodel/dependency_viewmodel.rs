@@ -29,6 +29,10 @@ impl DependencyViewModel {
         &self.dependency.name()
     }
 
+    pub fn dependencies(&self) -> &Vec<String> {
+        self.dependency.dependencies()
+    }
+
     pub fn is_installed(&self) -> IsInstalledState {
         let commands = match self.dependency.check() {
             Ok(commands) => commands,

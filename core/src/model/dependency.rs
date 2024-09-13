@@ -30,8 +30,13 @@ impl Dependency {
         &self.name
     }
 
-    pub fn dependencies(&self) -> &Option<Vec<String>> {
-        &self.dependencies
+    pub fn dependencies(&self) -> &Vec<String> {
+        const EMPTY: &Vec<String> = &vec![];
+        if let Some(dependencies) = &self.dependencies {
+            dependencies
+        } else {
+            &EMPTY
+        }
     }
 
     pub fn check(&self) -> Result<Vec<Command>, String> {

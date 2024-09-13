@@ -75,6 +75,7 @@ impl BakeViewModel {
             .next();
 
         if let Some(dependency) = dependency {
+            self.install_dependencies(dependency.dependencies())?;
             dependency.try_install()?;
             if dependency.is_installed() == IsInstalledState::NotInstalled {
                 Err(format!("failed to install {}", name))
