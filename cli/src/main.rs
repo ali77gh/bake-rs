@@ -64,4 +64,14 @@ impl Capabilities for CLICapabilities {
             Err(e) => Err(e.to_string()),
         }
     }
+
+    fn std_out(&self, input: &str) {
+        println!("{}", input);
+    }
+
+    fn std_in(&self) -> String {
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer).unwrap();
+        buffer
+    }
 }

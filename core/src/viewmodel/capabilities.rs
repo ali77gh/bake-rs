@@ -17,4 +17,7 @@ pub trait Capabilities {
     }
 
     fn open_link(&self, url: &str) -> Result<(), String>;
+
+    fn std_out(&self, input: &str);
+    fn std_in(&self) -> String;
 }

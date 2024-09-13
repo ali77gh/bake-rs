@@ -148,6 +148,16 @@ tasks:
         fn open_link(&self, _: &str) -> Result<(), String> {
             Ok(())
         }
+
+        fn std_out(&self, input: &str) {
+            println!("{}", input);
+        }
+
+        fn std_in(&self) -> String {
+            let mut buffer = String::new();
+            std::io::stdin().read_line(&mut buffer).unwrap();
+            buffer
+        }
     }
 
     #[test]
