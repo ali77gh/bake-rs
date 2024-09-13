@@ -3,6 +3,7 @@ mod show_tasks;
 
 use core::viewmodel::capabilities::Capabilities;
 use core::viewmodel::BakeViewModel;
+use std::io::Write;
 use std::process::Command;
 use std::rc::Rc;
 
@@ -66,7 +67,8 @@ impl Capabilities for CLICapabilities {
     }
 
     fn std_out(&self, input: &str) {
-        println!("{}", input);
+        print!("{}", input);
+        std::io::stdout().flush().unwrap();
     }
 
     fn std_in(&self) -> String {

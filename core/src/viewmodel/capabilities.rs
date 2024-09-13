@@ -20,4 +20,18 @@ pub trait Capabilities {
 
     fn std_out(&self, input: &str);
     fn std_in(&self) -> String;
+
+    fn ask_user(&self, question: &str) -> String {
+        self.std_out(format!("    {}? ", question).as_str());
+        let answer = self.std_in();
+        answer
+    }
+
+    fn ask_user_yes_no(&self, question: &str) -> bool {
+        let answer = self
+            .ask_user(format!("{} (yes|no)", question).as_str())
+            .to_lowercase();
+        let answer = answer.trim();
+        answer == "yes" || answer == "y"
+    }
 }

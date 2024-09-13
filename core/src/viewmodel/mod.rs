@@ -75,6 +75,15 @@ impl BakeViewModel {
             .next();
 
         if let Some(dependency) = dependency {
+            if dependency.is_installed() == IsInstalledState::Installed {
+                return Ok(());
+            }
+            if !self.caps.ask_user_yes_no(
+                format!("'{}' is not installed, do you want to install it", name).as_str(),
+            ) {
+                return Err(format!("cancel installation {}", name));
+            }
+
             self.install_dependencies(dependency.dependencies())?;
             dependency.try_install()?;
             if dependency.is_installed() == IsInstalledState::NotInstalled {
@@ -150,7 +159,7 @@ tasks:
         }
 
         fn std_out(&self, input: &str) {
-            println!("{}", input);
+            print!("{}", input);
         }
 
         fn std_in(&self) -> String {
