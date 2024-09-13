@@ -35,10 +35,19 @@ impl Capabilities for CLICapabilities {
         };
 
         match result {
-            Ok(x) => match std::str::from_utf8(&x.stdout) {
-                Ok(x) => Ok(x.to_string()),
-                Err(e) => Err(e.to_string()),
-            },
+            Ok(x) => {
+                if x.status.success() {
+                    match std::str::from_utf8(&x.stdout) {
+                        Ok(x) => Ok(x.to_string()),
+                        Err(e) => Err(e.to_string()),
+                    }
+                } else {
+                    match std::str::from_utf8(&x.stderr) {
+                        Ok(x) => Err(x.to_string()),
+                        Err(e) => Err(e.to_string()),
+                    }
+                }
+            }
             Err(e) => Err(e.to_string()),
         }
     }
