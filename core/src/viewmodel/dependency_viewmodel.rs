@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
-use crate::model::{command::Command, dependency::Dependency};
+use crate::{
+    model::{command::Command, dependency::Dependency},
+    util::platform_specific,
+};
 
 use super::capabilities::Capabilities;
 
@@ -67,6 +70,22 @@ impl DependencyViewModel {
         if let Ok(link) = &self.dependency.link() {
             self.capabilities.open_link(&standard_link(link))?;
             return Ok(());
+        }
+
+        if self.capabilities.ask_user_yes_no(
+            format!(
+                "There is no installation command or link for '{}' Do you want to search for it on google",
+                self.dependency.name()
+            ).as_str()
+        ){
+            let _ = self.capabilities.open_link(&standard_link(
+                format!(
+                    "https://google.com/search?q=how+to+install+{}+on+{}",
+                    self.name(),
+                    platform_specific::get_platform_name()
+                )
+                .as_str(),
+            ));
         }
 
         Err(format!("{} is not installable", self.name()))
