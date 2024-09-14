@@ -54,12 +54,6 @@ impl Capabilities for CLICapabilities {
     }
 
     fn open_link(&self, url: &str) -> Result<(), String> {
-        let url = if !url.starts_with("http://") && !url.starts_with("https://") {
-            format!("http://{}", url)
-        } else {
-            url.to_owned()
-        };
-
         match webbrowser::open(&url) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),

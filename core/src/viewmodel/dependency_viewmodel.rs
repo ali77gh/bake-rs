@@ -65,11 +65,19 @@ impl DependencyViewModel {
         }
 
         if let Ok(link) = &self.dependency.link() {
-            self.capabilities.open_link(&link)?;
+            self.capabilities.open_link(&standard_link(link))?;
             return Ok(());
         }
 
         Err(format!("{} is not installable", self.name()))
+    }
+}
+
+fn standard_link(url: &str) -> String {
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        format!("http://{}", url)
+    } else {
+        url.to_owned()
     }
 }
 
