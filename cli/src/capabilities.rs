@@ -35,7 +35,7 @@ impl Capabilities for CLICapabilities {
     }
 
     fn open_link(&self, url: &str) -> Result<(), String> {
-        match webbrowser::open(&url) {
+        match webbrowser::open(url) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }

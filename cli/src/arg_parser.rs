@@ -17,5 +17,5 @@ pub fn get_args() -> ParsedArgs {
         }
     }
 
-    return ParsedArgs::Invalid;
+    ParsedArgs::Invalid
 }
