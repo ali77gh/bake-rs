@@ -2,6 +2,7 @@ mod arg_parser;
 mod show_tasks;
 
 use core::viewmodel::capabilities::Capabilities;
+use core::viewmodel::message::Message;
 use core::viewmodel::BakeViewModel;
 use std::io::Write;
 use std::process::Command;
@@ -16,8 +17,20 @@ fn main() {
         arg_parser::ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),
         arg_parser::ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
         arg_parser::ParsedArgs::Command(x) => match bake.run_task(&x) {
-            Ok(std_out) => println!("{}", std_out.join("\n")),
-            Err(e) => println!("Error: \n{}", e),
+            Ok(()) => CLICapabilities.message(Message::new(
+                core::viewmodel::message::MessageType::BakeState,
+                format!("Task '{}' finished successfully\n", x),
+            )),
+            Err(e) => {
+                CLICapabilities.message(Message::new(
+                    core::viewmodel::message::MessageType::Error,
+                    e,
+                ));
+                CLICapabilities.message(Message::new(
+                    core::viewmodel::message::MessageType::BakeState,
+                    format!("Task '{}' failed to run\n", x),
+                ));
+            }
         },
     }
 }
@@ -28,7 +41,7 @@ impl Capabilities for CLICapabilities {
         std::fs::read_to_string(file_name).ok()
     }
 
-    fn execute(&self, command: &str) -> Result<String, String> {
+    fn execute_silent(&self, command: &str) -> Result<String, String> {
         let result = if cfg!(target_os = "windows") {
             Command::new("cmd").args(["/C", command]).output()
         } else {
@@ -60,12 +73,12 @@ impl Capabilities for CLICapabilities {
         }
     }
 
-    fn std_out(&self, input: &str) {
-        print!("{}", input);
+    fn message(&self, input: Message) {
+        print!("{}", input.content());
         std::io::stdout().flush().unwrap();
     }
 
-    fn std_in(&self) -> String {
+    fn input(&self) -> String {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer).unwrap();
         buffer

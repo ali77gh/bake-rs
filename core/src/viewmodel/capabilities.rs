@@ -1,29 +1,45 @@
+use super::message::Message;
+
 pub trait Capabilities {
     /// returns None if file not bakefile exist
     fn read_file(&self, file_name: &str) -> Option<String>;
 
     /// std-out in Ok and std-err in Err
-    fn execute(&self, command: &str) -> Result<String, String>;
+    fn execute_silent(&self, command: &str) -> Result<String, String>;
 
-    fn execute_all(&self, commands: &Vec<&str>) -> Result<Vec<String>, String> {
-        let mut std_outs = vec![];
+    fn execute_and_print(&self, command: &str) -> Result<(), String> {
+        self.message(Message::new(
+            super::message::MessageType::Normal,
+            self.execute_silent(command)?,
+        ));
+        Ok(())
+    }
+
+    fn execute_and_print_all(&self, commands: &Vec<&str>) -> Result<(), String> {
         for cmd in commands {
-            match self.execute(&cmd) {
-                Ok(std_out) => std_outs.push(std_out),
-                Err(e) => return Err(e),
-            }
+            self.execute_and_print(&cmd)?;
         }
-        Ok(std_outs)
+        Ok(())
+    }
+
+    fn execute_silent_all(&self, commands: &Vec<&str>) -> Result<(), String> {
+        for cmd in commands {
+            self.execute_silent(&cmd)?;
+        }
+        Ok(())
     }
 
     fn open_link(&self, url: &str) -> Result<(), String>;
 
-    fn std_out(&self, input: &str);
-    fn std_in(&self) -> String;
+    fn message(&self, input: Message);
+    fn input(&self) -> String;
 
     fn ask_user(&self, question: &str) -> String {
-        self.std_out(format!("    {}? ", question).as_str());
-        let answer = self.std_in();
+        self.message(Message::new(
+            super::message::MessageType::Question,
+            question.to_string(),
+        ));
+        let answer = self.input();
         answer
     }
 

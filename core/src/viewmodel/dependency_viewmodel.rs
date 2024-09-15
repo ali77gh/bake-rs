@@ -45,7 +45,8 @@ impl DependencyViewModel {
         //TODO remove this filter (you should run function calls too!)
         let commands = filter_commands(&commands);
 
-        match self.capabilities.execute_all(&commands) {
+        // check commands runs silently
+        match self.capabilities.execute_silent_all(&commands) {
             Ok(_) => IsInstalledState::Installed,
             Err(_) => IsInstalledState::NotInstalled,
         }
@@ -63,7 +64,7 @@ impl DependencyViewModel {
         if let Ok(commands) = &self.dependency.installation_command() {
             //TODO remove this filter (you should run function calls too!)
             let commands = filter_commands(&commands);
-            self.capabilities.execute_all(&commands)?;
+            self.capabilities.execute_and_print_all(&commands)?;
             return Ok(());
         }
 

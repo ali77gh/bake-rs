@@ -1,5 +1,6 @@
 pub mod capabilities;
 pub mod dependency_viewmodel;
+pub mod message;
 pub mod task_viewmodel;
 
 use std::rc::Rc;
@@ -96,7 +97,7 @@ impl BakeViewModel {
         }
     }
 
-    pub fn run_task(&self, name: &str) -> Result<Vec<String>, String> {
+    pub fn run_task(&self, name: &str) -> Result<(), String> {
         let task = self.tasks().iter().filter(|task| task.is(name)).next();
 
         if let Some(task) = task {
@@ -110,6 +111,8 @@ impl BakeViewModel {
 
 #[cfg(test)]
 mod tests {
+    use message::Message;
+
     use super::*;
 
     struct TestCap;
@@ -150,7 +153,7 @@ tasks:
             )
         }
 
-        fn execute(&self, _: &str) -> Result<String, String> {
+        fn execute_silent(&self, _: &str) -> Result<String, String> {
             Ok("done".to_string())
         }
 
@@ -158,11 +161,11 @@ tasks:
             Ok(())
         }
 
-        fn std_out(&self, input: &str) {
-            print!("{}", input);
+        fn message(&self, input: Message) {
+            print!("{}", input.content());
         }
 
-        fn std_in(&self) -> String {
+        fn input(&self) -> String {
             let mut buffer = String::new();
             std::io::stdin().read_line(&mut buffer).unwrap();
             buffer

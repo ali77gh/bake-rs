@@ -15,13 +15,13 @@ impl TaskViewModel {
         Self { capabilities, task }
     }
 
-    pub fn run(&self) -> Result<Vec<String>, String> {
+    pub fn run(&self) -> Result<(), String> {
         let commands = self.task.commands()?;
 
         // TODO remove this filter (you should run function calls too!)
         let commands = filter_commands(&commands);
 
-        self.capabilities.execute_all(&commands)
+        self.capabilities.execute_and_print_all(&commands)
     }
 
     pub fn name(&self) -> &str {
