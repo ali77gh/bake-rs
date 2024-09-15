@@ -104,6 +104,13 @@ impl BakeViewModel {
             self.install_dependencies(task.dependencies())?;
             task.run()
         } else {
+            if let Ok(index) = name.parse::<usize>() {
+                if let Some(task) = self.tasks.get(index - 1) {
+                    return Ok(self.run_task(task.name())?);
+                } else {
+                    return Err(format!("task {} not found", name));
+                }
+            }
             Err(format!("task {} not found", name))
         }
     }
