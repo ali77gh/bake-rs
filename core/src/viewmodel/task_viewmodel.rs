@@ -31,7 +31,7 @@ impl TaskViewModel {
         self.task.name() == name
     }
 
-    pub fn help_msg(&self) -> Option<&String> {
+    pub fn help_msg(&self) -> Option<&str> {
         self.task.help_msg()
     }
 

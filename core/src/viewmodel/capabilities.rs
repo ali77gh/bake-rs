@@ -17,6 +17,10 @@ pub trait Capabilities {
 
     fn execute_and_print_all(&self, commands: &[&str]) -> Result<(), String> {
         for cmd in commands {
+            self.message(Message::new(
+                super::message::MessageType::BakeState,
+                format!("command '{}' is running...\n", cmd),
+            ));
             self.execute_and_print(cmd)?;
         }
         Ok(())

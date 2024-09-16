@@ -11,7 +11,7 @@ use capabilities::CLICapabilities;
 use core::viewmodel::capabilities::Capabilities;
 
 fn main() {
-    let bake = BakeViewModel::new(Rc::new(CLICapabilities)).expect("bakefile not found");
+    let bake = BakeViewModel::new(Rc::new(CLICapabilities)).unwrap();
 
     match get_args() {
         arg_parser::ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),

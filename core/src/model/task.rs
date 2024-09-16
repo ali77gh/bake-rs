@@ -45,8 +45,8 @@ impl Task {
         &self.name
     }
 
-    pub fn help_msg(&self) -> Option<&String> {
-        self.help_msg.as_ref()
+    pub fn help_msg(&self) -> Option<&str> {
+        self.help_msg.as_deref()
     }
 
     pub fn dependencies(&self) -> Option<&[String]> {

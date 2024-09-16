@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
+use message::Message;
 use task_viewmodel::TaskViewModel;
 
 use crate::model::bake_file::BakeFile;
@@ -14,8 +15,6 @@ use crate::model::bake_file::BakeFile;
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
-    bake_file: BakeFile,
-
     dependencies: Vec<DependencyViewModel>,
     tasks: Vec<TaskViewModel>,
     caps: Rc<dyn Capabilities>,
@@ -38,7 +37,6 @@ impl BakeViewModel {
                 .map(|task| TaskViewModel::new(Rc::clone(&caps), task.clone()))
                 .collect();
             Ok(Self {
-                bake_file: bakefile,
                 caps,
                 tasks,
                 dependencies,
@@ -46,10 +44,6 @@ impl BakeViewModel {
         } else {
             Err("bakefile not found".to_string())
         }
-    }
-
-    pub fn bake_file(&self) -> &BakeFile {
-        &self.bake_file
     }
 
     pub fn dependencies(&self) -> &[DependencyViewModel] {
@@ -84,10 +78,21 @@ impl BakeViewModel {
             }
 
             self.install_dependencies(dependency.dependencies())?;
+            self.caps.message(Message::new(
+                message::MessageType::BakeState,
+                format!("dependency '{}' is installing...\n", dependency.name()),
+            ));
             dependency.try_install()?;
             if dependency.is_installed() == IsInstalledState::NotInstalled {
                 Err(format!("failed to install {}", name))
             } else {
+                self.caps.message(Message::new(
+                    message::MessageType::BakeState,
+                    format!(
+                        "dependency '{}' is installed successfully!\n",
+                        dependency.name()
+                    ),
+                ));
                 Ok(())
             }
         } else {
@@ -100,6 +105,10 @@ impl BakeViewModel {
 
         if let Some(task) = task {
             self.install_dependencies(task.dependencies())?;
+            self.caps.message(Message::new(
+                message::MessageType::BakeState,
+                format!("task '{}' is running...\n", name),
+            ));
             task.run()
         } else {
             if let Ok(index) = name.parse::<usize>() {
@@ -182,7 +191,7 @@ tasks:
         let cap = TestCap;
         let r = BakeViewModel::new(Rc::new(cap));
         assert_eq!(
-            r.unwrap().bake_file().tasks().get(0).unwrap().name(),
+            r.unwrap().tasks().get(0).unwrap().name(),
             "clean".to_string()
         );
     }
