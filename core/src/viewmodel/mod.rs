@@ -3,7 +3,7 @@ pub mod dependency_viewmodel;
 pub mod message;
 pub mod task_viewmodel;
 
-use std::rc::Rc;
+use std::{rc::Rc, time::Instant};
 
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
@@ -109,7 +109,18 @@ impl BakeViewModel {
                 message::MessageType::BakeState,
                 format!("task '{}' is running...\n", name),
             ));
-            task.run()
+            let start_time = Instant::now();
+            task.run()?;
+            let duration = start_time.elapsed();
+            self.caps.message(Message::new(
+                message::MessageType::BakeState,
+                format!(
+                    "Task '{}' finished successfully. time: {}ms\n",
+                    name,
+                    duration.as_millis()
+                ),
+            ));
+            Ok(())
         } else {
             if let Ok(index) = name.parse::<usize>() {
                 if let Some(task) = self.tasks.get(index - 1) {

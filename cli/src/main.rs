@@ -17,10 +17,7 @@ fn main() {
         arg_parser::ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),
         arg_parser::ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
         arg_parser::ParsedArgs::Command(x) => match bake.run_task(&x) {
-            Ok(()) => CLICapabilities.message(Message::new(
-                core::viewmodel::message::MessageType::BakeState,
-                format!("Task '{}' finished successfully\n", x),
-            )),
+            Ok(()) => {}
             Err(e) => {
                 CLICapabilities.message(Message::new(
                     core::viewmodel::message::MessageType::Error,
