@@ -45,7 +45,7 @@ impl FunctionCall {
         &self.function
     }
 
-    pub fn params(&self) -> &Vec<String> {
+    pub fn params(&self) -> &[String] {
         &self.params
     }
 }

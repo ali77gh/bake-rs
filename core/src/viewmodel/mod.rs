@@ -48,7 +48,6 @@ impl BakeViewModel {
         }
     }
 
-    ///
     pub fn bake_file(&self) -> &BakeFile {
         &self.bake_file
     }
@@ -61,7 +60,7 @@ impl BakeViewModel {
         &self.tasks
     }
 
-    pub fn install_dependencies(&self, names: &Vec<String>) -> Result<(), String> {
+    pub fn install_dependencies(&self, names: &[String]) -> Result<(), String> {
         for name in names {
             self.install_dependency(name)?;
         }
@@ -72,8 +71,7 @@ impl BakeViewModel {
         let dependency = self
             .dependencies()
             .iter()
-            .filter(|dependency| dependency.name() == name)
-            .next();
+            .find(|dependency| dependency.name() == name);
 
         if let Some(dependency) = dependency {
             if dependency.is_installed() == IsInstalledState::Installed {
@@ -98,7 +96,7 @@ impl BakeViewModel {
     }
 
     pub fn run_task(&self, name: &str) -> Result<(), String> {
-        let task = self.tasks().iter().filter(|task| task.is(name)).next();
+        let task = self.tasks().iter().find(|task| task.is(name));
 
         if let Some(task) = task {
             self.install_dependencies(task.dependencies())?;
@@ -106,7 +104,7 @@ impl BakeViewModel {
         } else {
             if let Ok(index) = name.parse::<usize>() {
                 if let Some(task) = self.tasks.get(index - 1) {
-                    return Ok(self.run_task(task.name())?);
+                    return self.run_task(task.name());
                 } else {
                     return Err(format!("task {} not found", name));
                 }

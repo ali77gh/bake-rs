@@ -12,7 +12,7 @@ pub fn show_tasks(tasks: &[TaskViewModel]) {
             "* [{}] {} {}\n",
             i + 1,
             task.name(),
-            match task.help_msg().clone() {
+            match task.help_msg() {
                 Some(x) => format!("({})", x),
                 None => "".to_string(),
             }

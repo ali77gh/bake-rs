@@ -22,7 +22,7 @@ impl BakeFile {
         serde_yaml::to_string(self).unwrap()
     }
 
-    pub fn plugins(&self) -> &Vec<Plugin> {
+    pub fn plugins(&self) -> &[Plugin] {
         const EMPTY: &Vec<Plugin> = &vec![];
         if let Some(x) = &self.plugins {
             x
@@ -31,7 +31,7 @@ impl BakeFile {
         }
     }
 
-    pub fn global_env_vars(&self) -> &Vec<Param> {
+    pub fn global_env_vars(&self) -> &[Param] {
         const EMPTY: &Vec<Param> = &vec![];
         if let Some(x) = &self.global_env_vars {
             x
@@ -40,7 +40,7 @@ impl BakeFile {
         }
     }
 
-    pub fn dependencies(&self) -> &Vec<Dependency> {
+    pub fn dependencies(&self) -> &[Dependency] {
         const EMPTY: &Vec<Dependency> = &vec![];
         if let Some(x) = &self.dependencies {
             x
@@ -49,7 +49,7 @@ impl BakeFile {
         }
     }
 
-    pub fn tasks(&self) -> &Vec<Task> {
+    pub fn tasks(&self) -> &[Task] {
         const EMPTY: &Vec<Task> = &vec![];
         if let Some(x) = &self.tasks {
             x

@@ -15,16 +15,16 @@ pub trait Capabilities {
         Ok(())
     }
 
-    fn execute_and_print_all(&self, commands: &Vec<&str>) -> Result<(), String> {
+    fn execute_and_print_all(&self, commands: &[&str]) -> Result<(), String> {
         for cmd in commands {
-            self.execute_and_print(&cmd)?;
+            self.execute_and_print(cmd)?;
         }
         Ok(())
     }
 
-    fn execute_silent_all(&self, commands: &Vec<&str>) -> Result<(), String> {
+    fn execute_silent_all(&self, commands: &[&str]) -> Result<(), String> {
         for cmd in commands {
-            self.execute_silent(&cmd)?;
+            self.execute_silent(cmd)?;
         }
         Ok(())
     }
@@ -39,8 +39,7 @@ pub trait Capabilities {
             super::message::MessageType::Question,
             question.to_string(),
         ));
-        let answer = self.input();
-        answer
+        self.input()
     }
 
     fn ask_user_yes_no(&self, question: &str) -> bool {

@@ -45,16 +45,16 @@ impl Task {
         &self.name
     }
 
-    pub fn help_msg(&self) -> &Option<String> {
-        &self.help_msg
+    pub fn help_msg(&self) -> Option<&String> {
+        self.help_msg.as_ref()
     }
 
-    pub fn dependencies(&self) -> Option<&Vec<String>> {
-        self.dependencies.as_ref()
+    pub fn dependencies(&self) -> Option<&[String]> {
+        self.dependencies.as_deref()
     }
 
-    pub fn params(&self) -> Option<&Vec<Param>> {
-        self.params.as_ref()
+    pub fn params(&self) -> Option<&[Param]> {
+        self.params.as_deref()
     }
 
     pub fn commands(&self) -> Result<Vec<Command>, String> {

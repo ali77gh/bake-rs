@@ -9,7 +9,6 @@ pub struct TaskViewModel {
     task: Task,
 }
 
-// TODO check dependencies are installed
 impl TaskViewModel {
     pub fn new(capabilities: Rc<dyn Capabilities>, task: Task) -> Self {
         Self { capabilities, task }
@@ -32,11 +31,11 @@ impl TaskViewModel {
         self.task.name() == name
     }
 
-    pub fn help_msg(&self) -> &Option<String> {
+    pub fn help_msg(&self) -> Option<&String> {
         self.task.help_msg()
     }
 
-    pub fn dependencies(&self) -> &Vec<String> {
+    pub fn dependencies(&self) -> &[String] {
         const EMPTY: &Vec<String> = &vec![];
         match self.task.dependencies() {
             Some(x) => x,

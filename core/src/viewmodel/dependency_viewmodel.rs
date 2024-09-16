@@ -29,10 +29,10 @@ impl DependencyViewModel {
     }
 
     pub fn name(&self) -> &str {
-        &self.dependency.name()
+        self.dependency.name()
     }
 
-    pub fn dependencies(&self) -> &Vec<String> {
+    pub fn dependencies(&self) -> &[String] {
         self.dependency.dependencies()
     }
 
@@ -63,7 +63,7 @@ impl DependencyViewModel {
 
         if let Ok(commands) = &self.dependency.installation_command() {
             //TODO remove this filter (you should run function calls too!)
-            let commands = filter_commands(&commands);
+            let commands = filter_commands(commands);
             self.capabilities.execute_and_print_all(&commands)?;
             return Ok(());
         }
@@ -102,7 +102,7 @@ fn standard_link(url: &str) -> String {
 }
 
 //TODO remove this filter (you should run function calls too!)
-pub fn filter_commands(commands: &Vec<Command>) -> Vec<&str> {
+pub fn filter_commands(commands: &[Command]) -> Vec<&str> {
     commands
         .iter()
         .filter_map(|command| match command {
