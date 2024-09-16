@@ -42,7 +42,40 @@ impl Capabilities for CLICapabilities {
     }
 
     fn message(&self, input: Message) {
-        print!("{}", input.content());
+        use colored::Colorize;
+
+        match input.message_type() {
+            core::viewmodel::message::MessageType::Error => {
+                print!(
+                    " {}: {}",
+                    " ❌ Error ".on_red().bold(),
+                    input.content().red()
+                )
+            }
+            core::viewmodel::message::MessageType::BakeState => {
+                print!(
+                    " {}: {}",
+                    " 🛈 Verbose ".on_blue().bold(),
+                    input.content().blue()
+                )
+            }
+            core::viewmodel::message::MessageType::Warning => {
+                print!(
+                    " {}: {}",
+                    " ⚠ Warning ".on_yellow().bold(),
+                    input.content().yellow()
+                )
+            }
+            core::viewmodel::message::MessageType::Normal => print!("{}", input.content()),
+            core::viewmodel::message::MessageType::Question => {
+                print!(
+                    " {}: {}? ",
+                    " 🯄 Question ".on_blue().bold(),
+                    input.content().blue()
+                )
+            }
+        }
+
         std::io::stdout().flush().unwrap();
     }
 

@@ -27,7 +27,7 @@ fn main() {
                     format!("{}\n", e),
                 ));
                 CLICapabilities.message(Message::new(
-                    core::viewmodel::message::MessageType::BakeState,
+                    core::viewmodel::message::MessageType::Error,
                     format!("Task '{}' failed to run\n", x),
                 ));
             }

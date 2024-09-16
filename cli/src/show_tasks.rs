@@ -1,19 +1,21 @@
 use core::viewmodel::task_viewmodel::TaskViewModel;
 
+use colored::Colorize;
+
 pub fn show_tasks(tasks: &[TaskViewModel]) {
     if tasks.is_empty() {
         println!("there is no task in bakefile");
         return;
     }
 
-    println!("Tasks:\n");
+    println!("{}\n", " Tasks: ".on_blue().black());
     for (i, task) in tasks.iter().enumerate() {
         println!(
-            "* [{}] {} {}\n",
-            i + 1,
-            task.name(),
+            " ⚙ {} {} {}\n",
+            format!(" {} ", (i + 1).to_string()).on_green().black(),
+            task.name().bold().underline(),
             match task.help_msg() {
-                Some(x) => format!("({})", x),
+                Some(x) => format!("({})", x.italic()),
                 None => "".to_string(),
             }
         );
