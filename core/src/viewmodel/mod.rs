@@ -10,7 +10,7 @@ use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
 use message::Message;
 use task_viewmodel::TaskViewModel;
 
-use crate::model::bake_file::BakeFile;
+use crate::model::{bake_file::BakeFile, command::Command};
 
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
@@ -68,7 +68,7 @@ impl BakeViewModel {
             .find(|dependency| dependency.name() == name);
 
         if let Some(dependency) = dependency {
-            if dependency.is_installed() == IsInstalledState::Installed {
+            if dependency.is_installed(self) == IsInstalledState::Installed {
                 return Ok(());
             }
             if !self.caps.ask_user_yes_no(
@@ -82,8 +82,8 @@ impl BakeViewModel {
                 message::MessageType::BakeState,
                 format!("dependency '{}' is installing...\n", dependency.name()),
             ));
-            dependency.try_install()?;
-            if dependency.is_installed() == IsInstalledState::NotInstalled {
+            dependency.try_install(self)?;
+            if dependency.is_installed(self) == IsInstalledState::NotInstalled {
                 Err(format!("failed to install {}", name))
             } else {
                 self.caps.message(Message::new(
@@ -110,7 +110,7 @@ impl BakeViewModel {
                 format!("task '{}' is running...\n", name),
             ));
             let start_time = Instant::now();
-            task.run()?;
+            task.run(self)?;
             let duration = start_time.elapsed();
             self.caps.message(Message::new(
                 message::MessageType::BakeState,
@@ -131,6 +131,20 @@ impl BakeViewModel {
             }
             Err(format!("task {} not found", name))
         }
+    }
+
+    pub fn run_command(&self, command: &Command) -> Result<(), String> {
+        match command {
+            Command::ShellCommand(cmd) => self.caps.execute_and_print(cmd),
+            Command::FunctionCall(fc) => self.run_task(fc.function()),
+        }
+    }
+
+    pub fn run_commands(&self, commands: &[Command]) -> Result<(), String> {
+        for command in commands {
+            self.run_command(command)?;
+        }
+        Ok(())
     }
 }
 

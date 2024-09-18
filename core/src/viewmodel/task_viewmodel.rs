@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::model::task::Task;
 
-use super::{capabilities::Capabilities, dependency_viewmodel::filter_commands};
+use super::{capabilities::Capabilities, BakeViewModel};
 
 pub struct TaskViewModel {
     capabilities: Rc<dyn Capabilities>,
@@ -14,13 +14,9 @@ impl TaskViewModel {
         Self { capabilities, task }
     }
 
-    pub fn run(&self) -> Result<(), String> {
+    pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
         let commands = self.task.commands()?;
-
-        // TODO remove this filter (you should run function calls too!)
-        let commands = filter_commands(&commands);
-
-        self.capabilities.execute_and_print_all(&commands)
+        bake_view_model.run_commands(&commands)
     }
 
     pub fn name(&self) -> &str {

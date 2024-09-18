@@ -12,7 +12,7 @@ pub fn show_tasks(tasks: &[TaskViewModel]) {
     for (i, task) in tasks.iter().enumerate() {
         println!(
             " ⚙ {} {} {}\n",
-            format!(" {} ", (i + 1).to_string()).on_green().black(),
+            format!(" {} ", (i + 1)).on_green().black(),
             task.name().bold().underline(),
             match task.help_msg() {
                 Some(x) => format!("({})", x.italic()),

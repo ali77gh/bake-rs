@@ -1,11 +1,8 @@
 use std::rc::Rc;
 
-use crate::{
-    model::{command::Command, dependency::Dependency},
-    util::platform_specific,
-};
+use crate::{model::dependency::Dependency, util::platform_specific};
 
-use super::capabilities::Capabilities;
+use super::{capabilities::Capabilities, BakeViewModel};
 
 #[derive(PartialEq)]
 pub enum IsInstalledState {
@@ -36,17 +33,14 @@ impl DependencyViewModel {
         self.dependency.dependencies()
     }
 
-    pub fn is_installed(&self) -> IsInstalledState {
+    pub fn is_installed(&self, bake_view_model: &BakeViewModel) -> IsInstalledState {
         let commands = match self.dependency.check() {
             Ok(commands) => commands,
             Err(_) => return IsInstalledState::Unknown,
         };
 
-        //TODO remove this filter (you should run function calls too!)
-        let commands = filter_commands(&commands);
-
         // check commands runs silently
-        match self.capabilities.execute_silent_all(&commands) {
+        match bake_view_model.run_commands(&commands) {
             Ok(_) => IsInstalledState::Installed,
             Err(_) => IsInstalledState::NotInstalled,
         }
@@ -56,15 +50,13 @@ impl DependencyViewModel {
         self.dependency.installation_command().is_ok() || self.dependency.link().is_ok()
     }
 
-    pub fn try_install(&self) -> Result<(), String> {
-        if self.is_installed() == IsInstalledState::Installed {
+    pub fn try_install(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+        if self.is_installed(bake_view_model) == IsInstalledState::Installed {
             return Ok(());
         }
 
         if let Ok(commands) = &self.dependency.installation_command() {
-            //TODO remove this filter (you should run function calls too!)
-            let commands = filter_commands(commands);
-            self.capabilities.execute_and_print_all(&commands)?;
+            bake_view_model.run_commands(commands)?;
             return Ok(());
         }
 
@@ -99,15 +91,4 @@ fn standard_link(url: &str) -> String {
     } else {
         url.to_owned()
     }
-}
-
-//TODO remove this filter (you should run function calls too!)
-pub fn filter_commands(commands: &[Command]) -> Vec<&str> {
-    commands
-        .iter()
-        .filter_map(|command| match command {
-            crate::model::command::Command::ShellCommand(s) => Some(s.as_str()),
-            crate::model::command::Command::FunctionCall(_) => None,
-        })
-        .collect::<Vec<&str>>()
 }
