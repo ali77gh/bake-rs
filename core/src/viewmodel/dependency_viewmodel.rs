@@ -1,6 +1,9 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{model::dependency::Dependency, util::platform_specific};
+use crate::{
+    model::dependency::Dependency,
+    util::url::{generate_installation_link, standard_link},
+};
 
 use super::{capabilities::Capabilities, BakeViewModel};
 
@@ -16,7 +19,6 @@ pub struct DependencyViewModel {
     dependency: Dependency,
 }
 
-// TODO install dependencies of dependencies
 impl DependencyViewModel {
     pub fn new(capabilities: Rc<dyn Capabilities>, dependency: Dependency) -> Self {
         Self {
@@ -86,25 +88,9 @@ impl DependencyViewModel {
                 self.dependency.name()
             ).as_str()
         ){
-            let _ = self.capabilities.open_link(&standard_link(
-                format!(
-                    "https://google.com/search?q=how+to+install+{}+on+{}",
-                    self.name(),
-                    platform_specific::get_platform_name()
-                )
-                .as_str(),
-            ));
+            let _ = self.capabilities.open_link(&generate_installation_link(self.name()));
         }
 
         Err(format!("{} is not installable", self.name()))
-    }
-}
-
-// TODO move this to utils
-fn standard_link(url: &str) -> String {
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        format!("http://{}", url)
-    } else {
-        url.to_owned()
     }
 }
