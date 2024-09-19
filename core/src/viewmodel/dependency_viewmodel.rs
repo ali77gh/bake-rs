@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{model::dependency::Dependency, util::platform_specific};
 
@@ -23,6 +23,21 @@ impl DependencyViewModel {
             capabilities,
             dependency,
         }
+    }
+
+    pub fn hashmap_from_dependencies(
+        capabilities: Rc<dyn Capabilities>,
+        dependencies: &[Dependency],
+    ) -> HashMap<String, DependencyViewModel> {
+        dependencies
+            .iter()
+            .map(|dependency| {
+                (
+                    dependency.name().to_string(),
+                    DependencyViewModel::new(Rc::clone(&capabilities), dependency.clone()),
+                )
+            })
+            .collect::<HashMap<String, DependencyViewModel>>()
     }
 
     pub fn name(&self) -> &str {
@@ -85,6 +100,7 @@ impl DependencyViewModel {
     }
 }
 
+// TODO move this to utils
 fn standard_link(url: &str) -> String {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         format!("http://{}", url)

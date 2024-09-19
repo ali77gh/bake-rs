@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::model::task::Task;
 
@@ -12,6 +12,21 @@ pub struct TaskViewModel {
 impl TaskViewModel {
     pub fn new(capabilities: Rc<dyn Capabilities>, task: Task) -> Self {
         Self { capabilities, task }
+    }
+
+    pub fn hashmap_from_tasks(
+        capabilities: Rc<dyn Capabilities>,
+        tasks: &[Task],
+    ) -> HashMap<String, TaskViewModel> {
+        tasks
+            .iter()
+            .map(|task| {
+                (
+                    task.name().to_string(),
+                    TaskViewModel::new(Rc::clone(&capabilities), task.clone()),
+                )
+            })
+            .collect::<HashMap<String, TaskViewModel>>()
     }
 
     pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {

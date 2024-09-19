@@ -3,7 +3,7 @@ pub mod dependency_viewmodel;
 pub mod message;
 pub mod task_viewmodel;
 
-use std::{rc::Rc, time::Instant};
+use std::{collections::HashMap, rc::Rc, time::Instant};
 
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
@@ -15,8 +15,8 @@ use crate::model::{bake_file::BakeFile, command::Command};
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
-    dependencies: Vec<DependencyViewModel>,
-    tasks: Vec<TaskViewModel>,
+    dependencies: HashMap<String, DependencyViewModel>,
+    tasks: HashMap<String, TaskViewModel>,
     caps: Rc<dyn Capabilities>,
 }
 
@@ -25,33 +25,37 @@ impl BakeViewModel {
     pub fn new(caps: Rc<dyn Capabilities>) -> Result<Self, String> {
         if let Some(content) = caps.read_file(BAKE_FILE_NAME) {
             let bakefile = BakeFile::from_yaml(&content)?;
-            let dependencies = bakefile
-                .dependencies()
-                .iter()
-                .map(|dependency| DependencyViewModel::new(Rc::clone(&caps), dependency.clone()))
-                .collect();
-
-            let tasks = bakefile
-                .tasks()
-                .iter()
-                .map(|task| TaskViewModel::new(Rc::clone(&caps), task.clone()))
-                .collect();
             Ok(Self {
-                caps,
-                tasks,
-                dependencies,
+                caps: Rc::clone(&caps),
+                dependencies: DependencyViewModel::hashmap_from_dependencies(
+                    Rc::clone(&caps),
+                    bakefile.dependencies(),
+                ),
+                tasks: TaskViewModel::hashmap_from_tasks(Rc::clone(&caps), bakefile.tasks()),
             })
         } else {
             Err("bakefile not found".to_string())
         }
     }
 
-    pub fn dependencies(&self) -> &[DependencyViewModel] {
-        &self.dependencies
+    pub fn get_dependency(&self, name: &str) -> Option<&DependencyViewModel> {
+        self.dependencies.get(name)
     }
 
-    pub fn tasks(&self) -> &[TaskViewModel] {
-        &self.tasks
+    pub fn get_task(&self, name: &str) -> Option<&TaskViewModel> {
+        self.tasks.get(name)
+    }
+
+    pub fn get_task_at(&self, index: usize) -> Option<&TaskViewModel> {
+        self.tasks.values().nth(index)
+    }
+
+    pub fn tasks(&self) -> Vec<&TaskViewModel> {
+        self.tasks.values().collect()
+    }
+
+    pub fn dependencies(&self) -> Vec<&DependencyViewModel> {
+        self.dependencies.values().collect()
     }
 
     pub fn install_dependencies(&self, names: &[String]) -> Result<(), String> {
@@ -62,12 +66,7 @@ impl BakeViewModel {
     }
 
     pub fn install_dependency(&self, name: &str) -> Result<(), String> {
-        let dependency = self
-            .dependencies()
-            .iter()
-            .find(|dependency| dependency.name() == name);
-
-        if let Some(dependency) = dependency {
+        if let Some(dependency) = self.get_dependency(name) {
             if dependency.is_installed(self) == IsInstalledState::Installed {
                 return Ok(());
             }
@@ -101,9 +100,7 @@ impl BakeViewModel {
     }
 
     pub fn run_task(&self, name: &str) -> Result<(), String> {
-        let task = self.tasks().iter().find(|task| task.is(name));
-
-        if let Some(task) = task {
+        if let Some(task) = self.get_task(name) {
             self.install_dependencies(task.dependencies())?;
             self.caps.message(Message::new(
                 message::MessageType::BakeState,
@@ -123,7 +120,7 @@ impl BakeViewModel {
             Ok(())
         } else {
             if let Ok(index) = name.parse::<usize>() {
-                if let Some(task) = self.tasks.get(index - 1) {
+                if let Some(task) = self.get_task_at(index - 1) {
                     return self.run_task(task.name());
                 } else {
                     return Err(format!("task {} not found", name));
@@ -216,7 +213,7 @@ tasks:
         let cap = TestCap;
         let r = BakeViewModel::new(Rc::new(cap));
         assert_eq!(
-            r.unwrap().tasks().get(0).unwrap().name(),
+            r.unwrap().get_task_at(0).unwrap().name(),
             "clean".to_string()
         );
     }
