@@ -10,23 +10,25 @@ use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
 use message::Message;
 use task_viewmodel::TaskViewModel;
 
-use crate::model::{bake_file::BakeFile, command::Command};
+use crate::model::{bake_file::BakeFile, command::Command, plugin::Plugin};
 
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
+    plugins: HashMap<String, BakeViewModel>,
     dependencies: HashMap<String, DependencyViewModel>,
     tasks: HashMap<String, TaskViewModel>,
     caps: Rc<dyn Capabilities>,
 }
 
 impl BakeViewModel {
-    /// returns None if file not bakefile exist
-    pub fn new(caps: Rc<dyn Capabilities>) -> Result<Self, String> {
-        if let Some(content) = caps.read_file(BAKE_FILE_NAME) {
+    /// returns None if bakefile not exist
+    pub fn new_from_file(caps: Rc<dyn Capabilities>, file_name: &str) -> Result<Self, String> {
+        if let Some(content) = caps.read_file(file_name) {
             let bakefile = BakeFile::from_yaml(&content)?;
             Ok(Self {
                 caps: Rc::clone(&caps),
+                plugins: Self::from_plugins(Rc::clone(&caps), bakefile.plugins())?,
                 dependencies: DependencyViewModel::hashmap_from_dependencies(
                     Rc::clone(&caps),
                     bakefile.dependencies(),
@@ -34,8 +36,30 @@ impl BakeViewModel {
                 tasks: TaskViewModel::hashmap_from_tasks(Rc::clone(&caps), bakefile.tasks()),
             })
         } else {
-            Err("bakefile not found".to_string())
+            Err(format!("{} not found", file_name))
         }
+    }
+
+    pub fn from_plugin(caps: Rc<dyn Capabilities>, plugin: &Plugin) -> Result<Self, String> {
+        Self::new_from_file(caps, plugin.path())
+    }
+
+    pub fn from_plugins(
+        caps: Rc<dyn Capabilities>,
+        plugins: &[Plugin],
+    ) -> Result<HashMap<String, Self>, String> {
+        let mut hashmap = HashMap::with_capacity(plugins.len());
+        for plugin in plugins {
+            hashmap.insert(
+                plugin.name().to_string(),
+                Self::new_from_file(Rc::clone(&caps), plugin.path())?,
+            );
+        }
+        Ok(hashmap)
+    }
+
+    pub fn new(caps: Rc<dyn Capabilities>) -> Result<Self, String> {
+        Self::new_from_file(caps, BAKE_FILE_NAME)
     }
 
     pub fn get_dependency(&self, name: &str) -> Option<&DependencyViewModel> {
@@ -133,7 +157,15 @@ impl BakeViewModel {
     pub fn run_command(&self, command: &Command) -> Result<(), String> {
         match command {
             Command::ShellCommand(cmd) => self.caps.execute_and_print(cmd),
-            Command::FunctionCall(fc) => self.run_task(fc.function()),
+            Command::FunctionCall(fc) => match fc.namespace() {
+                "this" => {
+                    return self.run_task(fc.function());
+                }
+                namespace => match self.plugins.get(namespace) {
+                    Some(x) => x.run_task(fc.function()),
+                    None => Err(format!("namespace '{}' not found", namespace)),
+                },
+            },
         }
     }
 

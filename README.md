@@ -207,7 +207,7 @@ tasks:
   - name: release
     dependencies: [ rust ]
     commands: 
-      - "@tasks.check" # run other tasks (before or after your commands)
+      - "@this.check" # run other tasks (before or after your commands)
       - cargo build --release
 
   - name: check
