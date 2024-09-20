@@ -1,5 +1,6 @@
 pub mod capabilities;
 pub mod dependency_viewmodel;
+pub mod env_validator;
 pub mod message;
 pub mod task_viewmodel;
 
@@ -7,6 +8,7 @@ use std::{collections::HashMap, rc::Rc, time::Instant};
 
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
+use env_validator::validate_envs;
 use message::Message;
 use task_viewmodel::TaskViewModel;
 
@@ -129,6 +131,7 @@ impl BakeViewModel {
     pub fn run_task(&self, name: &str) -> Result<(), String> {
         if let Some(task) = self.get_task(name) {
             self.install_dependencies(task.dependencies())?;
+            validate_envs(task)?;
             self.caps.message(Message::new(
                 message::MessageType::BakeState,
                 format!("task '{}' is running...\n", name),

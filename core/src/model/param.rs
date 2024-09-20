@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Param {
     name: String,
-    validation: Option<ParamValidation>,
+    validator: Option<ParamValidation>,
     value: Option<String>,
 }
 
@@ -11,13 +11,13 @@ impl Param {
     pub fn new(name: String, validation: Option<ParamValidation>) -> Self {
         Self {
             name,
-            validation,
+            validator: validation,
             value: None,
         }
     }
 
     pub fn set_value(&mut self, value: String) -> Result<(), String> {
-        if let Some(validation) = &self.validation {
+        if let Some(validation) = &self.validator {
             validation.validate(&value)?;
         }
         self.value = Some(value);
@@ -26,6 +26,14 @@ impl Param {
 
     pub fn get_value(&self) -> Option<String> {
         self.value.clone()
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn validator(&self) -> Option<&ParamValidation> {
+        self.validator.as_ref()
     }
 }
 

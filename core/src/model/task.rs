@@ -53,8 +53,12 @@ impl Task {
         self.dependencies.as_deref()
     }
 
-    pub fn params(&self) -> Option<&[Param]> {
-        self.params.as_deref()
+    pub fn params(&self) -> &[Param] {
+        const EMPTY: &Vec<Param> = &vec![];
+        match &self.params {
+            Some(x) => x,
+            None => EMPTY,
+        }
     }
 
     pub fn commands(&self) -> Result<Vec<Command>, String> {

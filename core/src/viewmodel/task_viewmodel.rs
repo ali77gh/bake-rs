@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
-use crate::{model::task::Task, util::ordered_map::OrderedMap};
+use crate::{
+    model::{param::Param, task::Task},
+    util::ordered_map::OrderedMap,
+};
 
 use super::{capabilities::Capabilities, BakeViewModel};
 
@@ -49,5 +52,9 @@ impl TaskViewModel {
             Some(x) => x,
             None => EMPTY,
         }
+    }
+
+    pub fn params(&self) -> &[Param] {
+        self.task.params()
     }
 }
