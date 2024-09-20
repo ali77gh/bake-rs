@@ -10,14 +10,17 @@ use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
 use message::Message;
 use task_viewmodel::TaskViewModel;
 
-use crate::model::{bake_file::BakeFile, command::Command, plugin::Plugin};
+use crate::{
+    model::{bake_file::BakeFile, command::Command, plugin::Plugin},
+    util::ordered_map::OrderedMap,
+};
 
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
     plugins: HashMap<String, BakeViewModel>,
     dependencies: HashMap<String, DependencyViewModel>,
-    tasks: HashMap<String, TaskViewModel>,
+    tasks: OrderedMap<String, TaskViewModel>,
     caps: Rc<dyn Capabilities>,
 }
 
@@ -67,15 +70,15 @@ impl BakeViewModel {
     }
 
     pub fn get_task(&self, name: &str) -> Option<&TaskViewModel> {
-        self.tasks.get(name)
+        self.tasks.get(&name.to_string())
     }
 
     pub fn get_task_at(&self, index: usize) -> Option<&TaskViewModel> {
-        self.tasks.values().nth(index)
+        self.tasks.get_at(index)
     }
 
-    pub fn tasks(&self) -> Vec<&TaskViewModel> {
-        self.tasks.values().collect()
+    pub fn tasks(&self) -> &[TaskViewModel] {
+        self.tasks.get_all()
     }
 
     pub fn dependencies(&self) -> Vec<&DependencyViewModel> {
@@ -191,9 +194,9 @@ mod tests {
             }
             Some(
                 "
-plugins:
-  - name: fs
-    path: .bake/fs.yaml
+# plugins:
+#   - name: fs
+#     path: .bake/fs.yaml
 
 global_env_vars:
   - name: PORT

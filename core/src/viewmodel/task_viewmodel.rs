@@ -1,6 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
-use crate::model::task::Task;
+use crate::{model::task::Task, util::ordered_map::OrderedMap};
 
 use super::{capabilities::Capabilities, BakeViewModel};
 
@@ -17,16 +17,13 @@ impl TaskViewModel {
     pub fn hashmap_from_tasks(
         capabilities: Rc<dyn Capabilities>,
         tasks: &[Task],
-    ) -> HashMap<String, TaskViewModel> {
-        tasks
-            .iter()
-            .map(|task| {
-                (
-                    task.name().to_string(),
-                    TaskViewModel::new(Rc::clone(&capabilities), task.clone()),
-                )
-            })
-            .collect::<HashMap<String, TaskViewModel>>()
+    ) -> OrderedMap<String, TaskViewModel> {
+        let mut map = OrderedMap::new();
+        for task in tasks {
+            let task_vm = TaskViewModel::new(Rc::clone(&capabilities), task.clone());
+            map.insert(task.name().to_string(), task_vm);
+        }
+        map
     }
 
     pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {

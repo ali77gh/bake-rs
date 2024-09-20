@@ -2,7 +2,7 @@ use core::viewmodel::task_viewmodel::TaskViewModel;
 
 use colored::Colorize;
 
-pub fn show_tasks(tasks: Vec<&TaskViewModel>) {
+pub fn show_tasks(tasks: &[TaskViewModel]) {
     if tasks.is_empty() {
         println!("there is no task in bakefile");
         return;
