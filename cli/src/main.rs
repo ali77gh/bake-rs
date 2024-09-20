@@ -19,14 +19,8 @@ fn main() {
         arg_parser::ParsedArgs::Command(x) => match bake.run_task(&x) {
             Ok(()) => {}
             Err(e) => {
-                CLICapabilities.message(Message::new(
-                    core::viewmodel::message::MessageType::Error,
-                    format!("{}\n", e),
-                ));
-                CLICapabilities.message(Message::new(
-                    core::viewmodel::message::MessageType::Error,
-                    format!("Task '{}' failed to run\n", x),
-                ));
+                CLICapabilities.message(Message::error(format!("{e}\n")));
+                CLICapabilities.message(Message::error(format!("Task '{x}' failed to run\n")));
             }
         },
     }

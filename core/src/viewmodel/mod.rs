@@ -106,21 +106,18 @@ impl BakeViewModel {
             }
 
             self.install_dependencies(dependency.dependencies())?;
-            self.caps.message(Message::new(
-                message::MessageType::BakeState,
-                format!("dependency '{}' is installing...\n", dependency.name()),
-            ));
+            self.caps.message(Message::bake_state(format!(
+                "dependency '{}' is installing...\n",
+                dependency.name()
+            )));
             dependency.try_install(self)?;
             if dependency.is_installed(self) == IsInstalledState::NotInstalled {
                 Err(format!("failed to install {}", name))
             } else {
-                self.caps.message(Message::new(
-                    message::MessageType::BakeState,
-                    format!(
-                        "dependency '{}' is installed successfully!\n",
-                        dependency.name()
-                    ),
-                ));
+                self.caps.message(Message::bake_state(format!(
+                    "dependency '{}' is installed successfully!\n",
+                    dependency.name()
+                )));
                 Ok(())
             }
         } else {
@@ -132,21 +129,16 @@ impl BakeViewModel {
         if let Some(task) = self.get_task(name) {
             self.install_dependencies(task.dependencies())?;
             validate_envs(task)?;
-            self.caps.message(Message::new(
-                message::MessageType::BakeState,
-                format!("task '{}' is running...\n", name),
-            ));
+            self.caps.message(Message::bake_state(format!(
+                "task '{name}' is running...\n"
+            )));
             let start_time = Instant::now();
             task.run(self)?;
             let duration = start_time.elapsed();
-            self.caps.message(Message::new(
-                message::MessageType::BakeState,
-                format!(
-                    "Task '{}' finished successfully. time: {}ms\n",
-                    name,
-                    duration.as_millis()
-                ),
-            ));
+            self.caps.message(Message::bake_state(format!(
+                "Task '{name}' finished successfully. time: {}ms\n",
+                duration.as_millis()
+            )));
             Ok(())
         } else {
             if let Ok(index) = name.parse::<usize>() {

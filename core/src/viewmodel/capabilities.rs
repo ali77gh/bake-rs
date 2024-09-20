@@ -8,19 +8,15 @@ pub trait Capabilities {
     fn execute_silent(&self, command: &str) -> Result<String, String>;
 
     fn execute_and_print(&self, command: &str) -> Result<(), String> {
-        self.message(Message::new(
-            super::message::MessageType::Normal,
-            self.execute_silent(command)?,
-        ));
+        self.message(Message::normal(self.execute_silent(command)?));
         Ok(())
     }
 
     fn execute_and_print_all(&self, commands: &[&str]) -> Result<(), String> {
         for cmd in commands {
-            self.message(Message::new(
-                super::message::MessageType::BakeState,
-                format!("command '{}' is running...\n", cmd),
-            ));
+            self.message(Message::bake_state(format!(
+                "command '{cmd}' is running...\n"
+            )));
             self.execute_and_print(cmd)?;
         }
         Ok(())
@@ -39,10 +35,7 @@ pub trait Capabilities {
     fn input(&self) -> String;
 
     fn ask_user(&self, question: &str) -> String {
-        self.message(Message::new(
-            super::message::MessageType::Question,
-            question.to_string(),
-        ));
+        self.message(Message::question(question));
         self.input()
     }
 
