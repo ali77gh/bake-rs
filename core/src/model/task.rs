@@ -9,7 +9,7 @@ pub struct Task {
     name: String,
     help_msg: Option<String>,
     dependencies: Option<Vec<String>>,
-    params: Option<Vec<Param>>,
+    envs: Option<Vec<Param>>,
 
     commands: Option<Vec<String>>,
     commands_linux: Option<Vec<String>>,
@@ -23,7 +23,7 @@ impl Task {
         name: String,
         help_msg: Option<String>,
         dependencies: Option<Vec<String>>,
-        params: Option<Vec<Param>>,
+        envs: Option<Vec<Param>>,
         commands: Option<Vec<String>>,
         commands_linux: Option<Vec<String>>,
         commands_windows: Option<Vec<String>>,
@@ -33,7 +33,7 @@ impl Task {
             name,
             help_msg,
             dependencies,
-            params,
+            envs,
             commands,
             commands_linux,
             commands_windows,
@@ -53,9 +53,9 @@ impl Task {
         self.dependencies.as_deref()
     }
 
-    pub fn params(&self) -> &[Param] {
+    pub fn envs(&self) -> &[Param] {
         const EMPTY: &Vec<Param> = &vec![];
-        match &self.params {
+        match &self.envs {
             Some(x) => x,
             None => EMPTY,
         }

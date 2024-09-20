@@ -55,6 +55,6 @@ impl TaskViewModel {
     }
 
     pub fn params(&self) -> &[Param] {
-        self.task.params()
+        self.task.envs()
     }
 }

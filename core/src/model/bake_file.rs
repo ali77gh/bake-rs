@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{dependency::Dependency, param::Param, plugin::Plugin, task::Task};
+use super::{dependency::Dependency, plugin::Plugin, task::Task};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct BakeFile {
     plugins: Option<Vec<Plugin>>,
-    global_env_vars: Option<Vec<Param>>,
     dependencies: Option<Vec<Dependency>>,
     tasks: Option<Vec<Task>>,
 }
@@ -25,15 +24,6 @@ impl BakeFile {
     pub fn plugins(&self) -> &[Plugin] {
         const EMPTY: &Vec<Plugin> = &vec![];
         if let Some(x) = &self.plugins {
-            x
-        } else {
-            EMPTY
-        }
-    }
-
-    pub fn global_env_vars(&self) -> &[Param] {
-        const EMPTY: &Vec<Param> = &vec![];
-        if let Some(x) = &self.global_env_vars {
             x
         } else {
             EMPTY
@@ -61,7 +51,8 @@ impl BakeFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::param_validator::ParamValidator;
+
+    use crate::model::{param::Param, param_validator::ParamValidator};
 
     use super::*;
 
@@ -86,7 +77,6 @@ mod tests {
                 "fs".to_string(),
                 ".bake/fs.yaml".to_string(),
             )]),
-            global_env_vars: Some(vec![Param::new("USERNAME".to_string(), None)]),
             dependencies: Some(vec![Dependency::new(
                 "rust".to_string(),
                 Some(vec!["rust-dependency".to_string()]),

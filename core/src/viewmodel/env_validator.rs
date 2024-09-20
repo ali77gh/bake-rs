@@ -17,7 +17,7 @@ pub fn validate_env(env: &Param) -> Result<(), String> {
     let key = env.name();
     let value = match std::env::var(key) {
         Ok(value) => value,
-        Err(e) => match env.value() {
+        Err(e) => match env.default() {
             Some(value) => {
                 std::env::set_var(key, value); // load yaml value to env
                 value.to_string()

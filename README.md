@@ -232,51 +232,42 @@ Note: If you run this on a windows system only the windows commands will run but
 
 ## Environment variables
 
-### global env
+Sometimes your tasks need some environment variables to run in this case you can specify some 'envs' in your bakefile and bake will check if that environment variable is exist or not.
 
-```yaml
-global-env-vars:
-  - name: PORT
-    value: 80
-
-  - name: BUILD_MODE 
-    value: debug
-```
-
-### param
+Note: you can provide a default EV for your requested EV by providing 'default' field in your yaml
 
 ```yaml
 tasks:
   - name: listen
-    env-vars:
+    envs:
       - name: PORT 
-        value: 80
+        default: 80
     cmd: [ nc -l -p $PORT ]
 ```
 
 <img width=300 src="./screenshots/env_vars_and_params.png">
 
-TODO: how to pass param to other tasks?
-
-### env validation
-
-supported validation:
+You can also specify simple validation for your env that checks value before run
 
 1. number (float or integer)
 1. integer
 1. bool
-1. enum(variation1|variation2|variation3| ...)
+1. !variants [ variation1, variation2, variation3, ...]
 
 ```yaml
-global-env-vars:
-  - name: PORT
-    value: 5
-    validator: integer
+tasks:
+  - name: task_with_envs
+    envs:
+      - name: PORT
+        default: 5
+        validator: integer
 
-  - name: build-mode
-    value: debug
-    validator: !variants [ debug, release ]
+      - name: build-mode
+        default: debug
+        validator: !variants [ debug, release ]
 ```
+
+TODO: write doc about how to pass param to other tasks.
 
 ### bake cache
 

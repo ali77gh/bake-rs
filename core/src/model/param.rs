@@ -6,7 +6,7 @@ use super::param_validator::ParamValidator;
 pub struct Param {
     name: String,
     validator: Option<ParamValidator>,
-    value: Option<String>,
+    default: Option<String>,
 }
 
 impl Param {
@@ -14,12 +14,12 @@ impl Param {
         Self {
             name,
             validator: validation,
-            value: None,
+            default: None,
         }
     }
 
-    pub fn value(&self) -> Option<&str> {
-        self.value.as_deref()
+    pub fn default(&self) -> Option<&str> {
+        self.default.as_deref()
     }
 
     pub fn name(&self) -> &str {
