@@ -17,16 +17,15 @@ pub fn validate_env(env: &Param) -> Result<(), String> {
     let key = env.name();
     let value = match std::env::var(key) {
         Ok(value) => value,
-        Err(e) => match env.get_value() {
+        Err(e) => match env.value() {
             Some(value) => {
-                std::env::set_var(key, value.clone()); // load yaml value to env
-                value
+                std::env::set_var(key, value); // load yaml value to env
+                value.to_string()
             }
             None => {
                 return Err(format!(
                     "environment variable error: '{}' not set ({})",
-                    key,
-                    e.to_string()
+                    key, e
                 ))
             }
         },
@@ -34,12 +33,10 @@ pub fn validate_env(env: &Param) -> Result<(), String> {
     match env.validator() {
         Some(validator) => match validator.validate(&value) {
             Ok(()) => Ok(()),
-            Err(e) => {
-                return Err(format!(
-                    "environment variable validation error: '{}'='{}' ({})",
-                    key, value, e
-                ))
-            }
+            Err(e) => Err(format!(
+                "environment variable validation error: '{}'='{}' ({})",
+                key, value, e
+            )),
         },
         None => Ok(()), // no validator
     }

@@ -61,8 +61,9 @@ impl BakeFile {
 
 #[cfg(test)]
 mod tests {
+    use crate::model::param_validator::ParamValidator;
+
     use super::*;
-    use crate::model::param::ParamValidation;
 
     #[test]
     fn yaml_generator_test() {
@@ -72,7 +73,7 @@ mod tests {
             Some(vec!["rust".to_string()]),
             Some(vec![Param::new(
                 "PORT".to_string(),
-                Some(ParamValidation::integer),
+                Some(ParamValidator::integer),
             )]),
             Some(vec!["cmd1".to_string(), "cmd2".to_string()]),
             None,
