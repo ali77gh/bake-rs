@@ -4,7 +4,7 @@ pub mod env_validator;
 pub mod message;
 pub mod task_viewmodel;
 
-use std::{collections::HashMap, rc::Rc, time::Instant};
+use std::{collections::HashMap, rc::Rc};
 
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
@@ -14,7 +14,7 @@ use task_viewmodel::TaskViewModel;
 
 use crate::{
     model::{bake_file::BakeFile, command::Command, plugin::Plugin},
-    util::ordered_map::OrderedMap,
+    util::{measure_execution_time::measure_execution_time_result, ordered_map::OrderedMap},
 };
 
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
@@ -132,9 +132,7 @@ impl BakeViewModel {
             self.caps.message(Message::bake_state(format!(
                 "task '{name}' is running...\n"
             )));
-            let start_time = Instant::now();
-            task.run(self)?;
-            let duration = start_time.elapsed();
+            let (_, duration) = measure_execution_time_result(|| task.run(self))?;
             self.caps.message(Message::bake_state(format!(
                 "Task '{name}' finished successfully. time: {}ms\n",
                 duration.as_millis()
