@@ -271,11 +271,11 @@ supported validation:
 global-env-vars:
   - name: PORT
     value: 5
-    validation: Integer
+    validator: integer
 
   - name: build-mode
     value: debug
-    validation: enum(debug|release)
+    validator: !variants [ debug, release ]
 ```
 
 ### bake cache

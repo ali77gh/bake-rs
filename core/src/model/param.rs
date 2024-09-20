@@ -40,30 +40,31 @@ impl Param {
 // TODO specify min and max for numbers and string length
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[allow(non_camel_case_types)] // everything else in this yaml is lower case
 pub enum ParamValidation {
-    Number, // Integer and float
-    Integer,
-    Enum(Vec<String>),
+    number, // Integer and float
+    integer,
+    variants(Vec<String>),
 }
 
 impl ParamValidation {
     pub fn validate(&self, value: &str) -> Result<(), String> {
         match self {
-            ParamValidation::Integer => match value.parse::<i64>() {
+            ParamValidation::integer => match value.parse::<i64>() {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
             },
-            ParamValidation::Number => match value.parse::<f64>() {
+            ParamValidation::number => match value.parse::<f64>() {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
             },
-            ParamValidation::Enum(variants) => {
+            ParamValidation::variants(variants) => {
                 for variant in variants {
                     if variant == value {
                         return Ok(());
                     }
                 }
-                Err("not in options".to_string())
+                Err(format!("{} not in options{:?}", value, variants))
             }
         }
     }
@@ -89,7 +90,7 @@ mod tests {
 
     #[test]
     fn validation_integer_test() {
-        let mut param = Param::new("name".to_string(), Some(ParamValidation::Integer));
+        let mut param = Param::new("name".to_string(), Some(ParamValidation::integer));
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -103,7 +104,7 @@ mod tests {
 
     #[test]
     fn validation_number_test() {
-        let mut param = Param::new("name".to_string(), Some(ParamValidation::Number));
+        let mut param = Param::new("name".to_string(), Some(ParamValidation::number));
 
         assert_eq!(param.value, None);
         assert_eq!(
@@ -123,17 +124,29 @@ mod tests {
 
     #[test]
     fn validation_enum() {
-        let validation = ParamValidation::Enum(vec!["debug".to_string(), "release".to_string()]);
+        let validation =
+            ParamValidation::variants(vec!["debug".to_string(), "release".to_string()]);
         let mut param = Param::new("name".to_string(), Some(validation));
 
         assert_eq!(param.value, None);
         assert_eq!(
             param.set_value("something_else".to_string()),
-            Err("not in options".to_string())
+            Err("something_else not in options[\"debug\", \"release\"]".to_string())
         );
         assert_eq!(param.value, None);
 
         assert_eq!(param.set_value("debug".to_string()), Ok(()));
         assert_eq!(param.value, Some("debug".to_string()));
+    }
+
+    #[test]
+    fn validation_enum_serde_test() {
+        let str = serde_yaml::to_string(&ParamValidation::variants(vec![
+            "debug".to_string(),
+            "release".to_string(),
+        ]))
+        .unwrap();
+
+        assert_eq!(str, "!variants\n- debug\n- release\n");
     }
 }

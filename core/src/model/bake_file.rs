@@ -72,7 +72,7 @@ mod tests {
             Some(vec!["rust".to_string()]),
             Some(vec![Param::new(
                 "PORT".to_string(),
-                Some(ParamValidation::Integer),
+                Some(ParamValidation::integer),
             )]),
             Some(vec!["cmd1".to_string(), "cmd2".to_string()]),
             None,
