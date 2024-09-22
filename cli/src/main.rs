@@ -2,6 +2,7 @@ mod arg_parser;
 mod capabilities;
 mod show_tasks;
 
+use core::util::update::update;
 use core::viewmodel::BakeViewModel;
 use core::{util::version::show_version, viewmodel::message::Message};
 use std::rc::Rc;
@@ -24,5 +25,6 @@ fn main() {
             }
         },
         ParsedArgs::Version => show_version(),
+        ParsedArgs::Update => update(&CLICapabilities).unwrap(),
     }
 }
