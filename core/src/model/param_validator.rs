@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Deserialize, Clone)]
 #[allow(non_camel_case_types)] // everything else in this yaml is lower case
 pub enum ParamValidator {
     number, // Integer and float
@@ -19,14 +19,10 @@ impl ParamValidator {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
             },
-            ParamValidator::variants(variants) => {
-                for variant in variants {
-                    if variant == value {
-                        return Ok(());
-                    }
-                }
-                Err(format!("{} not in options{:?}", value, variants))
-            }
+            ParamValidator::variants(variants) => variants
+                .contains(&value.to_owned())
+                .then(|| ())
+                .ok_or(format!("{} not in options{:?}", value, variants)),
         }
     }
 }
@@ -37,12 +33,10 @@ mod tests {
 
     #[test]
     fn validation_enum_serde_test() {
-        let str = serde_yaml::to_string(&ParamValidator::variants(vec![
-            "debug".to_string(),
-            "release".to_string(),
-        ]))
-        .unwrap();
+        let pv = ParamValidator::variants(vec!["debug".to_string(), "release".to_string()]);
+        let s: Result<ParamValidator, serde_yaml::Error> =
+            serde_yaml::from_str("!variants\n- debug\n- release\n");
 
-        assert_eq!(str, "!variants\n- debug\n- release\n");
+        assert_eq!(pv, s.unwrap());
     }
 }

@@ -47,11 +47,7 @@ impl TaskViewModel {
     }
 
     pub fn dependencies(&self) -> &[String] {
-        const EMPTY: &Vec<String> = &vec![];
-        match self.task.dependencies() {
-            Some(x) => x,
-            None => EMPTY,
-        }
+        self.task.dependencies()
     }
 
     pub fn params(&self) -> &[Param] {

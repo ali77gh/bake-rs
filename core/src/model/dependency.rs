@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::util::platform_specific::{get_platform_name, platform_specific};
 
 use super::command::Command;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Dependency {
     name: String,
     dependencies: Option<Vec<String>>,
@@ -58,24 +58,14 @@ impl Dependency {
     }
 
     pub fn link(&self) -> Result<String, String> {
-        #[cfg(target_os = "linux")]
-        if let Some(s) = &self.link_linux {
-            return Ok(s.to_string());
-        }
-        #[cfg(target_os = "windows")]
-        if let Some(s) = self.link_windows {
-            return Ok(s.to_string());
-        }
-        #[cfg(target_os = "macos")]
-        if let Some(s) = self.link_macos {
-            return Ok(s.to_string());
-        }
-
-        if let Some(link) = &self.link {
-            Ok(link.to_string())
-        } else {
-            Err(format!("no command available for {}", get_platform_name()))
-        }
+        platform_specific(
+            self.link.as_ref(),
+            self.link_linux.as_ref(),
+            self.link_windows.as_ref(),
+            self.link_macos.as_ref(),
+        )
+        .ok_or(format!("no command available for {}", get_platform_name()))
+        .cloned()
     }
 
     pub fn installation_command(&self) -> Result<Vec<Command>, String> {

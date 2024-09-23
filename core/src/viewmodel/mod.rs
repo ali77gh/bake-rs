@@ -139,14 +139,13 @@ impl BakeViewModel {
             )));
             Ok(())
         } else {
-            if let Ok(index) = name.parse::<usize>() {
-                if let Some(task) = self.get_task_at(index - 1) {
-                    return self.run_task(task.name());
-                } else {
-                    return Err(format!("task {} not found", name));
-                }
-            }
-            Err(format!("task {} not found", name))
+            let index = name
+                .parse::<usize>()
+                .or(Err(format!("task {} not found", name)))?;
+            let task = self
+                .get_task_at(index - 1)
+                .ok_or(format!("task {} not found", name))?;
+            self.run_task(task.name())
         }
     }
 
@@ -201,7 +200,7 @@ dependencies:
     dependencies: [ rust ]
     check: [ rustc --version ]
     link: https://somewhere.com
-    command_linux: [ sudo apt install something ]
+    commands_linux: [ sudo apt install something ]
 
 tasks:
   - name: clean

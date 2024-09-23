@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::util::platform_specific::{get_platform_name, platform_specific};
 
 use super::{command::Command, param::Param};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Task {
     name: String,
     help_msg: Option<String>,
@@ -49,15 +49,21 @@ impl Task {
         self.help_msg.as_deref()
     }
 
-    pub fn dependencies(&self) -> Option<&[String]> {
-        self.dependencies.as_deref()
+    pub fn dependencies(&self) -> &[String] {
+        const EMPTY: &Vec<String> = &vec![];
+        if let Some(x) = &self.dependencies {
+            x
+        } else {
+            EMPTY
+        }
     }
 
     pub fn envs(&self) -> &[Param] {
         const EMPTY: &Vec<Param> = &vec![];
-        match &self.envs {
-            Some(x) => x,
-            None => EMPTY,
+        if let Some(x) = &self.envs {
+            x
+        } else {
+            EMPTY
         }
     }
 

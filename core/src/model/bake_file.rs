@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use super::{dependency::Dependency, plugin::Plugin, task::Task};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 pub struct BakeFile {
     plugins: Option<Vec<Plugin>>,
     dependencies: Option<Vec<Dependency>>,
@@ -15,10 +15,6 @@ impl BakeFile {
             Ok(x) => Ok(x),
             Err(e) => Err(e.to_string()),
         }
-    }
-
-    pub fn to_yaml(&self) -> String {
-        serde_yaml::to_string(self).unwrap()
     }
 
     pub fn plugins(&self) -> &[Plugin] {
@@ -52,53 +48,7 @@ impl BakeFile {
 #[cfg(test)]
 mod tests {
 
-    use crate::model::{param::Param, param_validator::ParamValidator};
-
     use super::*;
-
-    #[test]
-    fn yaml_generator_test() {
-        let task = Task::new(
-            "clean".to_string(),
-            Some("removes some stuff".to_string()),
-            Some(vec!["rust".to_string()]),
-            Some(vec![Param::new(
-                "PORT".to_string(),
-                Some(ParamValidator::integer),
-            )]),
-            Some(vec!["cmd1".to_string(), "cmd2".to_string()]),
-            None,
-            None,
-            None,
-        );
-
-        let bake_file = BakeFile {
-            plugins: Some(vec![Plugin::new(
-                "fs".to_string(),
-                ".bake/fs.yaml".to_string(),
-            )]),
-            dependencies: Some(vec![Dependency::new(
-                "rust".to_string(),
-                Some(vec!["rust-dependency".to_string()]),
-                Some(vec!["rustc --version".to_string()]),
-                None,
-                None,
-                None,
-                Some("https://somewhere.com".to_string()),
-                None,
-                None,
-                None,
-                None,
-                Some(vec!["sudo apt install something".to_string()]),
-                None,
-                None,
-            )]),
-            tasks: Some(vec![task]),
-        };
-        let yaml = bake_file.to_yaml();
-        dbg!(yaml);
-        // assert!(false);
-    }
 
     #[test]
     fn yaml_parser_test() {
@@ -117,7 +67,7 @@ dependencies:
     dependencies: [ rust ]
     check: [ rustc --version ]
     link: https://somewhere.com
-    command_linux: [ sudo apt install something ]
+    commands_linux: [ sudo apt install something ]
 
 tasks:
   - name: clean

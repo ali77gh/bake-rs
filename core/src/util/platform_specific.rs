@@ -1,28 +1,22 @@
 #![allow(unused_variables)]
 
-pub fn platform_specific<'a>(
-    common: Option<&'a Vec<String>>,
-    linux: Option<&'a Vec<String>>,
-    windows: Option<&'a Vec<String>>,
-    macos: Option<&'a Vec<String>>,
-) -> Option<&'a Vec<String>> {
+pub fn platform_specific<'a, T>(
+    common: Option<&'a T>,
+    linux: Option<&'a T>,
+    windows: Option<&'a T>,
+    macos: Option<&'a T>,
+) -> Option<&'a T> {
     #[cfg(target_os = "linux")]
     if let Some(s) = linux {
-        if !s.is_empty() {
-            return Some(s);
-        }
+        return Some(s);
     }
     #[cfg(target_os = "windows")]
     if let Some(s) = windows {
-        if !s.is_empty() {
-            return Some(s);
-        }
+        return Some(s);
     }
     #[cfg(target_os = "macos")]
     if let Some(s) = macos {
-        if !s.is_empty() {
-            return Some(s);
-        }
+        return Some(s);
     }
     common
 }

@@ -194,7 +194,7 @@ You can also specify different commands or links for installing on different pla
 dependencies:
   - name: wget
     check: [ wget --version ]
-    command_linux: sudo apt install wget # linux only
+    commands_linux: [ sudo apt install wget ] # linux only
     link: https://www.gnu.org/software/wget/ # mac and windows
 ```
 
