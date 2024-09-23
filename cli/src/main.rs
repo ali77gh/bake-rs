@@ -1,5 +1,6 @@
 mod arg_parser;
 mod capabilities;
+mod help;
 mod show_tasks;
 
 use core::util::update::update;
@@ -11,6 +12,7 @@ use std::rc::Rc;
 use arg_parser::{get_args, ParsedArgs};
 use capabilities::CLICapabilities;
 use core::viewmodel::capabilities::Capabilities;
+use help::show_help;
 
 fn main() {
     match get_args() {
@@ -25,6 +27,7 @@ fn main() {
         },
         ParsedArgs::Version => show_version(),
         ParsedArgs::Update => update(&CLICapabilities),
+        ParsedArgs::Help => show_help(),
     }
 }
 

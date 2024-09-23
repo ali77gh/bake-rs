@@ -1,6 +1,7 @@
 use std::env;
 pub enum ParsedArgs {
     Version,
+    Help,
     Update,
     ShowTasks,
     Command(String),
@@ -20,6 +21,10 @@ pub fn get_args() -> ParsedArgs {
 
         if x == "--update" {
             return ParsedArgs::Update;
+        }
+
+        if x == "--help" {
+            return ParsedArgs::Help;
         }
 
         if !x.starts_with("--") {
