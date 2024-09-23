@@ -1,7 +1,8 @@
-# bake-rs
+# Bake-rs
 
 > [!WARNING]  
-> This project is not ready to use yet! it's just an idea.
+> Bake is beta yet.\
+> You can Try it but It may not be stable and APIs may change in future.
 
 Bake is a universal cross-platform script runner written in Rust which can be used for any kind of project or application.
 
@@ -11,25 +12,9 @@ Bake can also help users install dependencies and set up environment variables. 
 
 ## Table of content
 
-- [Basic](#basic)
-   * [CLI](#cli)
-   * [TUI](#tui)
-   * [GUI](#gui)
-   * [Web](#web)
-- [Error handling](#error-handling)
-- [Build dependencies](#build-dependencies)
-   * [Run other tasks from a task](#run-other-tasks-from-a-task)
-- [Platform specific commands](#platform-specific-commands)
-- [Environment variables](#environment-variables)
-   * [global env](#global-env)
-   * [param](#param)
-   * [env validation](#env-validation)
-   * [bake cache](#bake-cache)
-- [Plugin system](#plugin-system)
-
 ## Basic
 
-Make a file named 'bakefile.yaml' in root of your project
+Make a file named 'bakefile.yaml'
 
 ```yaml
 tasks:
@@ -41,122 +26,44 @@ tasks:
     help_msg: this task says hello
     commands: 
       - echo hello world
-      - echo hello from bake
+      - echo hello from Bake
 ```
 
-Now you have many ways to run your tasks:
-
-### CLI
+### Usage
 
 ```sh
 $ bake --show
+ Tasks: 
 
-[1] clean: this task removes what you build
-[2] hello: this task says hello
+ ⚙  1  clean (this task removes what you build)
 
-$ 
+ ⚙  2  hello (this task says hello)
 ```
 
 ```sh
-$ bake clean
-
-task clean -> 'rm ./build' is running
-task clean -> 'rm ./build' is done
-
-$ 
-```
-
-### TUI
-
-```sh
-$ bake
-
-[1] clean: this task removes what you build
-[2] hello: this task says hello
-
-Enter task name or [index] to run: 2
-
-task hello -> 'echo hello world' is running
+$ bake hello
+  🛈 Verbose : task 'hello' is running...
 hello world
-task hello -> 'echo hello world' is done
-
-task hello -> 'echo hello from bake' is running
 hello from bake
-task hello -> 'echo hello from bake' is done
-
-[1] clean: this task removes what you build
-[2] hello: this task says hello
-
-Enter task name or [index] to run: 
+  🛈 Verbose : Task 'hello' finished successfully. time: 2ms
 ```
 
-### GUI
+Note: you will see same result by running 'bake 1'
 
-```sh
-bake --gui
-```
-
-<img width=300 src="./screenshots/simple_ui.png">
-
-### Web
-
-With web interface you can run commands remotely and see result.
-
-You can start server by running:
-
-```sh
-bake --start-server --port 3000 --set-password PASS
-```
-
-hint: with web interface you can run some commands on your remote server by clicking a button!
-
-you can set it up on your raspberry pi and use it as a web controller for your project.
-
-Warning: if you are using it over internet make sure its behind an encryption layer (don't leak your password)
-
-## Error handling
-
-```yaml
-tasks:
-  - name: hello
-    commands: 
-      - echo 1
-      - echo2 # this is an error
-      - echo 3
-```
-
-```sh
-task hello -> 'echo 1' is running
-1
-task hello -> 'echo 1' is done
-
-task hello -> 'echo2' is running
-Command 'echo2' not found
-task hello -> 'echo2' failed
-
-bake aborting hello
-```
-
-Note: task 'echo 3' will not run.
-
-## Build dependencies
-
-TODO: how to check version?
+## Dependencies
 
 Sometimes you need some stuff installed on system to run a command.
 
-for example to run your build task you need to have 'rust' installed.
-
-check this out:
+for example to compile a Rust code-base you need to have 'cargo' installed.
 
 ```yaml
 dependencies:
-  - name: rust
+  - name: cargo
     check: [ cargo --version ]
     link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
 
   - name: clippy
-    dependencies: [ rust ] # dependencies can depend on other dependencies
+    dependencies: [ cargo ] # dependencies can depend on other dependencies
     check: [ cargo clippy --version ]
     command: [ cargo install clippy ] # install button will automatically install
 
@@ -170,12 +77,12 @@ Now you tasks can depends on dependencies
 ```yaml
 tasks:
   - name: release
-    dependencies: [ rust ] 
+    dependencies: [ cargo ] 
     commands: 
         - cargo build --release
 
   - name: check
-    dependencies: [ rust, clippy ]
+    dependencies: [ cargo, clippy ]
     commands:
       - cargo check
       - cargo clippy
@@ -183,7 +90,7 @@ tasks:
       - cargo test
 ```
 
-<img width=300 src="./screenshots/dependency_manager.png">
+Note: by running 'release' Bake first gonna check if you have rust installed by running specified command: "cargo --version", if this commands exit with non zero code (means cargo is not installed) Bake will run cargo installation commands that you provided (or open provided link in browser) and while cargo is installed Bake will run 'release' task commands one by one.
 
 Note: 'check' command works with [exit code](https://en.wikipedia.org/wiki/Exit_status#:~:text=In%20computing%2C%20the%20exit%20status,referred%20to%20as%20an%20errorlevel.)
 so if the exit code is 0 this means dependency is installed or exist but any other non-zero code will try to run your specified command or link to get your dependency installed.
@@ -195,24 +102,32 @@ dependencies:
   - name: wget
     check: [ wget --version ]
     commands_linux: [ sudo apt install wget ] # linux only
-    link: https://www.gnu.org/software/wget/ # mac and windows
+    link: https://www.gnu.org/software/wget/ # mac and windows (in this case)
 ```
 
 ### Run other tasks from a task
 
-For running other task from your task you need to put a '@' at the beginning of your command (so the parser will know it's a bake command and not a system binary)
+For running other task from your task you need to put a '@' at the beginning of your command (so the parser will know it's a Bake command and not a system binary)
 
 ```yaml
 tasks:
   - name: release
     dependencies: [ rust ]
     commands: 
-      - "@this.check" # run other tasks (before or after your commands)
+      - "@this.check" # here
       - cargo build --release
+      - "@this.publish" # here
 
   - name: check
-    cmd:
+    commands:
       - cargo check
+      - cargo clippy
+      - cargo fmt --check
+      - cargo test
+
+  - name: publish
+    commands:
+      - cargo publish
 ```
 
 ## Platform specific commands
@@ -222,7 +137,7 @@ Sometimes you need to run different commands on different operating systems:
 ```yaml
 tasks:
   - name: clean
-    commands: # default  
+    commands: # default (linux and mac in this case)
         - rm ./target
     commands_windows: 
         - del target
@@ -230,11 +145,13 @@ tasks:
 
 Note: If you run this on a windows system only the windows commands will run but as you did not specify commands_linux and commands_macos if you run this task on Linux or MacOS it will run default commands.
 
+Note: if you don't specify platform specific commands for a platform with no default commands Bake will show an error while running that task on that specific platform.
+
 ## Environment variables
 
-Sometimes your tasks need some environment variables to run in this case you can specify some 'envs' in your bakefile and bake will check if that environment variable is exist or not.
+Sometimes your tasks need some environment variables to run, in this case you can specify some 'envs' for your task and Bake will check if that environment variable is exist or not.
 
-Note: you can provide a default EV for your requested EV by providing 'default' field in your yaml
+Note: you can also provide a default value for your env by providing 'default' field in your yaml
 
 ```yaml
 tasks:
@@ -242,12 +159,10 @@ tasks:
     envs:
       - name: PORT 
         default: 80
-    cmd: [ nc -l -p $PORT ]
+    commands: [ nc -l -p $PORT ]
 ```
 
-<img width=300 src="./screenshots/env_vars_and_params.png">
-
-You can also specify simple validation for your env that checks value before run
+You can also specify simple validation for your env that checks value before run.
 
 1. number (float or integer)
 1. integer
@@ -267,12 +182,6 @@ tasks:
         validator: !variants [ debug, release ]
 ```
 
-TODO: write doc about how to pass param to other tasks.
-
-### bake cache
-
-bake can save your env setups on a file 'bake.cache' make sure you add this file to gitignore to prevent leaking your API_KEYS
-
 ## Plugin system
 
 You can import other peoples '.yaml' files and call there tasks from your tasks or depend on their dependencies.
@@ -283,10 +192,61 @@ plugins:
     path: ./.bake/fs.yaml
 ```
 
+```yaml
+tasks:
+  - name: my_task
+    commands:
+      - "@fs.copy_file"
+```
+
+Note: you can also write your local plugins for your project.
+
+## Ideas
+
 You can install/update plugins from internet by running:
 
 ```sh
 bake --install http://github.com/path_to_plugin.yaml
 ```
 
-Note: you can also write your local plugins for your project.
+Passing env to other tasks like:
+
+```yaml
+tasks:
+  - name: my_task
+    commands:
+      - "@fs.copy_file --FROM ./here --TO ./there"
+```
+
+### GUI (Not implemented yet)
+
+```sh
+bake --gui
+```
+
+<img width=300 src="./screenshots/simple_ui.png">
+
+<img width=300 src="./screenshots/dependency_manager.png">
+
+<img width=300 src="./screenshots/env.png">
+
+### Web (Not implemented yet)
+
+With web interface you can run commands remotely and see result.
+
+You can start server by running:
+
+```sh
+bake --start-server --port 3000 --set-password PASS
+```
+
+hint: with web interface you can run some commands on your remote server by clicking a button!
+
+you can set it up on your raspberry pi and use it as a web controller for your project.
+
+Warning: if you are using it over internet make sure its behind an encryption layer (don't leak your password)
+
+- TUI interface
+- VsCode extension
+- NeoVim plugin
+- --yes switch for auto yes questions
