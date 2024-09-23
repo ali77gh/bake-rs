@@ -13,18 +13,10 @@ use capabilities::CLICapabilities;
 use core::viewmodel::capabilities::Capabilities;
 
 fn main() {
-    let bake = match BakeViewModel::new(Rc::new(CLICapabilities)) {
-        Ok(x) => x,
-        Err(e) => {
-            println!("{}", e);
-            exit(1); // cleaner way to panic
-        }
-    };
-
     match get_args() {
-        ParsedArgs::ShowTasks => show_tasks::show_tasks(bake.tasks()),
+        ParsedArgs::ShowTasks => show_tasks::show_tasks(bake().tasks()),
         ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
-        ParsedArgs::Command(x) => match bake.run_task(&x) {
+        ParsedArgs::Command(x) => match bake().run_task(&x) {
             Ok(()) => {}
             Err(e) => {
                 CLICapabilities.message(Message::error(format!("{e}\n")));
@@ -33,5 +25,15 @@ fn main() {
         },
         ParsedArgs::Version => show_version(),
         ParsedArgs::Update => update(&CLICapabilities),
+    }
+}
+
+fn bake() -> BakeViewModel {
+    match BakeViewModel::new(Rc::new(CLICapabilities)) {
+        Ok(x) => x,
+        Err(e) => {
+            println!("{}", e);
+            exit(1); // cleaner way to panic
+        }
     }
 }
