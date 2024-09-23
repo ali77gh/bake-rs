@@ -21,7 +21,7 @@ impl ParamValidator {
             },
             ParamValidator::variants(variants) => variants
                 .contains(&value.to_owned())
-                .then(|| ())
+                .then_some(())
                 .ok_or(format!("{} not in options{:?}", value, variants)),
         }
     }
