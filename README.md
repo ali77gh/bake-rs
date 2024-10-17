@@ -182,6 +182,17 @@ tasks:
         validator: !variants [ debug, release ]
 ```
 
+And you can pass env to a task while calling it from another task
+
+syntax is like:
+
+```yaml
+tasks:
+  - name: task_with_envs_caller
+    commands:
+      - "@this.task_with_envs --PORT 80 --build-mode release" # passing params to other task
+```
+
 ## Plugin system
 
 You can import other peoples '.yaml' files and call there tasks from your tasks or depend on their dependencies.
