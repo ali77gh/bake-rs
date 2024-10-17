@@ -2,31 +2,26 @@ use colored::Colorize;
 
 pub fn show_help() {
     println!(" {}\n", " How to use Bake: ".on_blue());
-    println!("    {} {}\n", "bake --help".blue(), "to see this message");
+    println!("    {} to see this message\n", "bake --help".blue());
     println!(
-        "    {} {}\n",
-        "bake --version".blue(),
-        "to see bake version"
+        "    {} to see bake version\n",
+        "bake --version".blue()
     );
     println!(
-        "    {} {}\n",
-        "bake --update".blue(),
-        "to open bake on github"
+        "    {} to open bake on github\n",
+        "bake --update".blue()
     );
     println!(
-        "    {} {}\n",
-        "bake --show".blue(),
-        "to see list of tasks with indexes and help messages"
+        "    {} to see list of tasks with indexes and help messages\n",
+        "bake --show".blue()
     );
 
     println!(
-        "    {} {}\n",
-        "bake <COMMAND_NAME>".blue(),
-        "to run command with name (run bake --show to see list of names)"
+        "    {} to run command with name (run bake --show to see list of names)\n",
+        "bake <COMMAND_NAME>".blue()
     );
     println!(
-        "    {} {}",
-        "bake <COMMAND_INDEX>".blue(),
-        "to run command with index (run bake --show to see list of indexes)"
+        "    {} to run command with index (run bake --show to see list of indexes)",
+        "bake <COMMAND_INDEX>".blue()
     );
 }
