@@ -25,6 +25,8 @@ impl TryFrom<&str> for Command {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
 
     #[test]
@@ -34,13 +36,15 @@ mod tests {
     }
     #[test]
     fn command_parser_function_call_test() {
-        let command = Command::try_from("@fs.copy from to");
         assert_eq!(
-            command,
+            Command::try_from("@fs.copy --from f --to t"),
             Ok(Command::FunctionCall(FunctionCall::new(
                 "fs".to_string(),
                 "copy".to_string(),
-                vec!["from".to_string(), "to".to_string()]
+                HashMap::from([
+                    ("from".to_string(), "f".to_string()),
+                    ("to".to_string(), "t".to_string()),
+                ])
             )))
         );
     }
@@ -75,7 +79,7 @@ mod tests {
             Ok(Command::FunctionCall(FunctionCall::new(
                 "fs".to_string(),
                 "copy".to_string(),
-                vec![]
+                HashMap::new()
             )))
         );
     }

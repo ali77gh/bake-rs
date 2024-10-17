@@ -1,6 +1,7 @@
 pub mod capabilities;
 pub mod dependency_viewmodel;
 pub mod env_validator;
+pub mod env_with_role_back;
 pub mod message;
 pub mod task_viewmodel;
 
@@ -9,6 +10,7 @@ use std::{collections::HashMap, rc::Rc};
 use capabilities::Capabilities;
 use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
 use env_validator::validate_envs;
+use env_with_role_back::EnvWithRoleBack;
 use message::Message;
 use task_viewmodel::TaskViewModel;
 
@@ -154,10 +156,20 @@ impl BakeViewModel {
             Command::ShellCommand(cmd) => self.caps.execute_and_print(cmd),
             Command::FunctionCall(fc) => match fc.namespace() {
                 "this" => {
-                    return self.run_task(fc.function());
+                    let mut env_with_role_back = EnvWithRoleBack::new();
+                    env_with_role_back.set_envs(fc.params());
+                    let r = self.run_task(fc.function());
+                    env_with_role_back.role_back();
+                    return r;
                 }
                 namespace => match self.plugins.get(namespace) {
-                    Some(x) => x.run_task(fc.function()),
+                    Some(x) => {
+                        let mut env_with_role_back = EnvWithRoleBack::new();
+                        env_with_role_back.set_envs(fc.params());
+                        let r = x.run_task(fc.function());
+                        env_with_role_back.role_back();
+                        r
+                    }
                     None => Err(format!("namespace '{}' not found", namespace)),
                 },
             },
