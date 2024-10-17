@@ -153,7 +153,13 @@ impl BakeViewModel {
 
     pub fn run_command(&self, command: &Command) -> Result<(), String> {
         match command {
-            Command::ShellCommand(cmd) => self.caps.execute_and_print(cmd),
+            Command::ShellCommand(cmd) => {
+                if self.caps.execute(cmd) {
+                    Ok(())
+                } else {
+                    Err("".to_string())
+                }
+            }
             Command::FunctionCall(fc) => match fc.namespace() {
                 "this" => {
                     let mut env_with_role_back = EnvWithRoleBack::new();
@@ -228,8 +234,9 @@ tasks:
             )
         }
 
-        fn execute_silent(&self, _: &str) -> Result<String, String> {
-            Ok("done".to_string())
+        fn execute(&self, _: &str) -> bool {
+            Message::normal("done");
+            true
         }
 
         fn open_link(&self, _: &str) -> Result<(), String> {

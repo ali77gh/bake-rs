@@ -4,29 +4,22 @@ pub trait Capabilities {
     /// returns None if file not bakefile exist
     fn read_file(&self, file_name: &str) -> Option<String>;
 
-    /// std-out in Ok and std-err in Err
-    fn execute_silent(&self, command: &str) -> Result<String, String>;
+    /// returns true if non zero code
+    /// interact with user however you want
+    /// Suggestion:
+    ///     stdout to [Message::normal]
+    ///     stderr to [Message::error]
+    ///     stdin using [Capabilities::ask_user]
+    fn execute(&self, command: &str) -> bool;
 
-    fn execute_and_print(&self, command: &str) -> Result<(), String> {
-        self.message(Message::normal(self.execute_silent(command)?));
-        Ok(())
-    }
-
-    fn execute_and_print_all(&self, commands: &[&str]) -> Result<(), String> {
+    /// doing [Capabilities::execute] in loop and exit on false
+    fn execute_all(&self, commands: &[&str]) -> bool {
         for cmd in commands {
-            self.message(Message::bake_state(format!(
-                "command '{cmd}' is running...\n"
-            )));
-            self.execute_and_print(cmd)?;
+            if !self.execute(cmd) {
+                return false;
+            }
         }
-        Ok(())
-    }
-
-    fn execute_silent_all(&self, commands: &[&str]) -> Result<(), String> {
-        for cmd in commands {
-            self.execute_silent(cmd)?;
-        }
-        Ok(())
+        true
     }
 
     fn open_link(&self, url: &str) -> Result<(), String>;

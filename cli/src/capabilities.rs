@@ -1,7 +1,7 @@
 use core::viewmodel::capabilities::Capabilities;
 use core::viewmodel::message::Message;
 use std::io::Write;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 pub struct CLICapabilities;
 impl Capabilities for CLICapabilities {
@@ -9,28 +9,19 @@ impl Capabilities for CLICapabilities {
         std::fs::read_to_string(file_name).ok()
     }
 
-    fn execute_silent(&self, command: &str) -> Result<String, String> {
-        let result = if cfg!(target_os = "windows") {
-            Command::new("cmd").args(["/C", command]).output()
-        } else {
-            Command::new("sh").arg("-c").arg(command).output()
-        };
+    fn execute(&self, command: &str) -> bool {
+        let result = Command::new(SHELL)
+            .arg(SWITCH)
+            .arg(command)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .unwrap()
+            .wait();
 
         match result {
-            Ok(x) => {
-                if x.status.success() {
-                    match std::str::from_utf8(&x.stdout) {
-                        Ok(x) => Ok(x.to_string()),
-                        Err(e) => Err(e.to_string()),
-                    }
-                } else {
-                    match std::str::from_utf8(&x.stderr) {
-                        Ok(x) => Err(x.to_string()),
-                        Err(e) => Err(e.to_string()),
-                    }
-                }
-            }
-            Err(e) => Err(e.to_string()),
+            Ok(x) => x.success(),
+            Err(_) => false,
         }
     }
 
@@ -85,3 +76,12 @@ impl Capabilities for CLICapabilities {
         buffer
     }
 }
+
+#[cfg(target_os = "windows")]
+const SHELL: &str = "cmd";
+#[cfg(target_os = "windows")]
+const SWITCH: &str = "/C";
+#[cfg(not(target_os = "windows"))]
+const SHELL: &str = "sh";
+#[cfg(not(target_os = "windows"))]
+const SWITCH: &str = "-c";
