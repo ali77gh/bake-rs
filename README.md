@@ -65,11 +65,11 @@ dependencies:
   - name: clippy
     dependencies: [ cargo ] # dependencies can depend on other dependencies
     check: [ cargo clippy --version ]
-    command: [ cargo install clippy ] # install button will automatically install
+    commands: [ cargo install clippy ] # install button will automatically install
 
   - name: check-file-exist-dependency
     check: [ ls target ] # you can check if a file or directory exist like this
-    command: [ cargo build ]
+    commands: [ cargo build ]
 ```
 
 Now you tasks can depends on dependencies
@@ -200,53 +200,3 @@ tasks:
 ```
 
 Note: you can also write your local plugins for your project.
-
-## Ideas
-
-You can install/update plugins from internet by running:
-
-```sh
-bake --install http://github.com/path_to_plugin.yaml
-```
-
-Passing env to other tasks like:
-
-```yaml
-tasks:
-  - name: my_task
-    commands:
-      - "@fs.copy_file --FROM ./here --TO ./there"
-```
-
-### GUI (Not implemented yet)
-
-```sh
-bake --gui
-```
-
-<img width=300 src="./screenshots/simple_ui.png">
-
-<img width=300 src="./screenshots/dependency_manager.png">
-
-<img width=300 src="./screenshots/env.png">
-
-### Web (Not implemented yet)
-
-With web interface you can run commands remotely and see result.
-
-You can start server by running:
-
-```sh
-bake --start-server --port 3000 --set-password PASS
-```
-
-hint: with web interface you can run some commands on your remote server by clicking a button!
-
-you can set it up on your raspberry pi and use it as a web controller for your project.
-
-Warning: if you are using it over internet make sure its behind an encryption layer (don't leak your password)
-
-- TUI interface
-- VsCode extension
-- NeoVim plugin
-- --yes switch for auto yes questions
