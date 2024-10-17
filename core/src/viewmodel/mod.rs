@@ -166,7 +166,7 @@ impl BakeViewModel {
                     env_with_role_back.set_envs(fc.params());
                     let r = self.run_task(fc.function());
                     env_with_role_back.role_back();
-                    return r;
+                    r
                 }
                 namespace => match self.plugins.get(namespace) {
                     Some(x) => {

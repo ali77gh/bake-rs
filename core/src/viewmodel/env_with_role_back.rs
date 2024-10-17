@@ -4,6 +4,12 @@ pub struct EnvWithRoleBack {
     previous_envs: HashMap<String, Option<String>>,
 }
 
+impl Default for EnvWithRoleBack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EnvWithRoleBack {
     pub fn new() -> Self {
         EnvWithRoleBack {
