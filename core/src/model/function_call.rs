@@ -41,11 +41,17 @@ impl TryFrom<&str> for FunctionCall {
         let str = &str[1..]; // pop '@' from begin
         let binding = str.split(' ').collect::<Vec<&str>>();
         let function_id = binding.first();
-        let function_id = function_id.ok_or("syntax error".to_string())?;
+        let function_id =
+            function_id.ok_or("syntax error(@namespace.functionName not found)".to_string())?;
 
         let sp = function_id.split('.').collect::<Vec<&str>>();
-        let namespace = sp.first().ok_or("syntax error".to_string())?;
-        let function_name = sp.get(1).ok_or("syntax error".to_string())?;
+        let (namespace, function_name) = match sp.len() {
+            // Safety: len is 1 so first always exist
+            1 => (&"this", sp.first().unwrap()),
+            // Safety: len is 2 so first and second always exist
+            2 => (sp.first().unwrap(), sp.get(1).unwrap()),
+            _ => return Err("syntax error( two dots found in @namespace.functionName)".to_string()),
+        };
 
         if namespace.is_empty() {
             return Err("syntax error(namespace is missing)".to_string());
@@ -93,6 +99,15 @@ mod tests {
     fn valid() {
         assert_eq!(
             FunctionCall::try_from("@this.function_name").unwrap(),
+            FunctionCall::new(
+                "this".to_string(),
+                "function_name".to_string(),
+                HashMap::new()
+            )
+        );
+
+        assert_eq!(
+            FunctionCall::try_from("@function_name").unwrap(),
             FunctionCall::new(
                 "this".to_string(),
                 "function_name".to_string(),

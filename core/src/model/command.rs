@@ -54,10 +54,6 @@ mod tests {
         // empty
         assert_eq!(Command::try_from(""), Err("is empty".to_string()));
 
-        // missing dot
-        let command = Command::try_from("@fscopy from to");
-        assert_eq!(command, Err("syntax error".to_string()));
-
         // missing namespace
         let command = Command::try_from("@.copy from to");
         assert_eq!(
