@@ -46,8 +46,8 @@ impl Capabilities for CLICapabilities {
             core::viewmodel::message::MessageType::BakeState => {
                 print!(
                     " {}: {}",
-                    " 🛈 Verbose ".on_blue().bold(),
-                    input.content().blue()
+                    " ▶ Bake ".on_bright_yellow().black(),
+                    input.content().bright_yellow()
                 )
             }
             core::viewmodel::message::MessageType::Warning => {
@@ -61,8 +61,8 @@ impl Capabilities for CLICapabilities {
             core::viewmodel::message::MessageType::Question => {
                 print!(
                     " {}: {}? ",
-                    " 🯄 Question ".on_blue().bold(),
-                    input.content().blue()
+                    " 🯄 Question ".on_bright_yellow().black(),
+                    input.content().bright_yellow()
                 )
             }
         }
