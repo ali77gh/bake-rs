@@ -1,5 +1,7 @@
 # Bake-rs
 
+<center> <img src="./logo.png" width=600/> </center>
+
 > [!WARNING]  
 > Bake is beta yet.\
 > You can Try it but It may not be stable and APIs may change in future.
@@ -9,8 +11,6 @@ Bake is a universal cross-platform script runner written in Rust which can be us
 Essentially, you put your tasks in a YAML file. Then, you have an interactive CLI + TUI + GUI interface to run these tasks, enabling your less tech-savvy coworkers (including yourself six months later, having forgotten all the commands) to execute your commands with the click of a button!
 
 Bake can also help users install dependencies and set up environment variables. Furthermore, it supports a plugin system that allows you to import other people's bakefile.yaml configurations into your own.
-
-## Table of content
 
 ## Basic
 
