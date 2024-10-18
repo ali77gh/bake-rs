@@ -12,6 +12,19 @@ Essentially, you put your tasks in a YAML file. Then, you have an interactive CL
 
 Bake can also help users install dependencies and set up environment variables. Furthermore, it supports a plugin system that allows you to import other people's bakefile.yaml configurations into your own.
 
+## Table of content
+
+- [Bake-rs](#bake-rs)
+  - [Table of content](#table-of-content)
+  - [Basic](#basic)
+    - [Usage](#usage)
+  - [Dependencies](#dependencies)
+    - [Run other tasks from a task](#run-other-tasks-from-a-task)
+  - [Platform specific commands](#platform-specific-commands)
+  - [Environment variables](#environment-variables)
+  - [Plugin system](#plugin-system)
+
+
 ## Basic
 
 Make a file named 'bakefile.yaml'
