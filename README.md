@@ -1,16 +1,21 @@
 # Bake-rs
 
-<center> <img src="./logo.png" width=600/> </center>
+<img src="./logo.png" width=600/> 
 
-> [!WARNING]  
-> Bake is beta yet.\
-> You can Try it but It may not be stable and APIs may change in future.
+[![OS - Linux](https://img.shields.io/badge/OS-Linux-blue?logo=linux&logoColor=white)](https://www.linux.org/ "Go to Linux homepage")
+[![OS - macOS](https://img.shields.io/badge/OS-macOS-blue?logo=apple&logoColor=white)](https://www.apple.com/macos/ "Go to Apple homepage")
+[![OS - Windows](https://img.shields.io/badge/OS-Windows-blue?logo=windows&logoColor=white)](https://www.microsoft.com/ "Go to Microsoft homepage")
+
+![GitHub top language](https://img.shields.io/github/languages/top/ali77gh/bake-rs)
+[![GitHub license](https://badgen.net/github/license/ali77gh/bake-rs)](https://github.com/ali77gh/bake-rs/blob/master/LICENSE)
 
 Bake is a universal cross-platform script runner written in Rust which can be used for any kind of project or application.
 
-Essentially, you put your tasks in a YAML file. Then, you have an interactive CLI + TUI + GUI interface to run these tasks, enabling your less tech-savvy coworkers (including yourself six months later, having forgotten all the commands) to execute your commands with the click of a button!
+Essentially, you put your tasks in a YAML file. Then, you have an interactive CLI + TUI + GUI interface to run these tasks, enabling your coworkers (and yourself six months later, having forgotten all the commands) to execute your commands with the click of a button!
 
-Bake can also help users install dependencies and set up environment variables. Furthermore, it supports a plugin system that allows you to import other people's bakefile.yaml configurations into your own.
+Bake can also help users install dependencies and setup environment variables. Furthermore, it supports a plugin system that allows you to import other people's bakefile.yaml configurations into your own.
+
+You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
 
 ## Table of content
 
@@ -23,6 +28,7 @@ Bake can also help users install dependencies and set up environment variables. 
   - [Platform specific commands](#platform-specific-commands)
   - [Environment variables](#environment-variables)
   - [Plugin system](#plugin-system)
+  - [Stars](#stars)
 
 
 ## Basic
@@ -224,3 +230,6 @@ tasks:
 ```
 
 Note: you can also write your local plugins for your project.
+
+## Stars
+[![Stargazers over time](https://starchart.cc/ali77gh/bake-rs.svg)](https://starchart.cc/ali77gh/bake-rs)
