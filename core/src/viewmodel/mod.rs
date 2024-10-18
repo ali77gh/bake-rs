@@ -130,7 +130,7 @@ impl BakeViewModel {
     pub fn run_task(&self, name: &str) -> Result<(), String> {
         if let Some(task) = self.get_task(name) {
             self.install_dependencies(task.dependencies())?;
-            validate_envs(task)?;
+            validate_envs(Rc::clone(&self.caps), task)?;
             self.caps.message(Message::bake_state(format!(
                 "task '{name}' is running...\n"
             )));
