@@ -82,7 +82,8 @@ impl DependencyViewModel {
             return Ok(());
         }
 
-        if self.capabilities.ask_user_yes_no(
+        // auto yes if none
+        if let Some(true) | None = self.capabilities.ask_user_yes_no(
             format!(
                 "There is no installation command or link for '{}' Do you want to search for it on google",
                 self.dependency.name()

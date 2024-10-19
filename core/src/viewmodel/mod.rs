@@ -101,7 +101,8 @@ impl BakeViewModel {
             if dependency.is_installed(self) == IsInstalledState::Installed {
                 return Ok(());
             }
-            if !self.caps.ask_user_yes_no(
+            // auto yes if can't get user input
+            if let Some(false) = self.caps.ask_user_yes_no(
                 format!("'{}' is not installed, do you want to install it", name).as_str(),
             ) {
                 return Err(format!("cancel installation {}", name));
@@ -247,10 +248,10 @@ tasks:
             print!("{}", input.content());
         }
 
-        fn input(&self) -> String {
+        fn input(&self) -> Option<String> {
             let mut buffer = String::new();
             std::io::stdin().read_line(&mut buffer).unwrap();
-            buffer
+            Some(buffer)
         }
     }
 

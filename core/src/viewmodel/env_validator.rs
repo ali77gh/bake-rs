@@ -31,6 +31,7 @@ pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String
                         "environment variable '{0}' not found enter {0}",
                         key
                     ))
+                    .ok_or(format!("can't get environment variable '{0}'", key))?
                     .trim()
                     .to_string();
                 std::env::set_var(key, &user_input);

@@ -1,9 +1,19 @@
 use core::viewmodel::capabilities::Capabilities;
-use core::viewmodel::message::Message;
+use core::viewmodel::message::{Message, MessageType};
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-pub struct CLICapabilities;
+pub struct CLICapabilities {
+    pub non_interactive: bool,
+}
+
+impl Default for CLICapabilities {
+    fn default() -> Self {
+        Self {
+            non_interactive: false,
+        }
+    }
+}
 impl Capabilities for CLICapabilities {
     fn read_file(&self, file_name: &str) -> Option<String> {
         std::fs::read_to_string(file_name).ok()
@@ -34,6 +44,11 @@ impl Capabilities for CLICapabilities {
 
     fn message(&self, input: Message) {
         use colored::Colorize;
+
+        // prevent printing message in non-interactive mode
+        if self.non_interactive && *input.message_type() == MessageType::Question {
+            return;
+        }
 
         match input.message_type() {
             core::viewmodel::message::MessageType::Error => {
@@ -70,10 +85,14 @@ impl Capabilities for CLICapabilities {
         std::io::stdout().flush().unwrap();
     }
 
-    fn input(&self) -> String {
-        let mut buffer = String::new();
-        std::io::stdin().read_line(&mut buffer).unwrap();
-        buffer
+    fn input(&self) -> Option<String> {
+        if self.non_interactive {
+            None
+        } else {
+            let mut buffer = String::new();
+            std::io::stdin().read_line(&mut buffer).unwrap();
+            Some(buffer)
+        }
     }
 }
 

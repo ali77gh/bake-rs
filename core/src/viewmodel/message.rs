@@ -36,6 +36,7 @@ impl Message {
     }
 }
 
+#[derive(PartialEq, Eq)]
 pub enum MessageType {
     Error,
     BakeState,

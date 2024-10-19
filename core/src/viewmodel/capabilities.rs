@@ -25,18 +25,18 @@ pub trait Capabilities {
     fn open_link(&self, url: &str) -> Result<(), String>;
 
     fn message(&self, input: Message);
-    fn input(&self) -> String;
+    fn input(&self) -> Option<String>;
 
-    fn ask_user(&self, question: &str) -> String {
+    fn ask_user(&self, question: &str) -> Option<String> {
         self.message(Message::question(question));
         self.input()
     }
 
-    fn ask_user_yes_no(&self, question: &str) -> bool {
+    fn ask_user_yes_no(&self, question: &str) -> Option<bool> {
         let answer = self
-            .ask_user(format!("{} (yes|no)", question).as_str())
+            .ask_user(format!("{} (yes|no)", question).as_str())?
             .to_lowercase();
         let answer = answer.trim();
-        answer == "yes" || answer == "y"
+        Some(answer == "yes" || answer == "y")
     }
 }
