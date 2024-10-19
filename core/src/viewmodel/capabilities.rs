@@ -22,7 +22,7 @@ pub trait Capabilities {
         true
     }
 
-    fn open_link(&self, url: &str) -> Result<(), String>;
+    fn open_link(&self, url: &str);
 
     fn message(&self, input: Message);
     fn input(&self) -> Option<String>;

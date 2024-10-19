@@ -78,7 +78,7 @@ impl DependencyViewModel {
         }
 
         if let Ok(link) = &self.dependency.link() {
-            self.capabilities.open_link(&standard_link(link))?;
+            self.capabilities.open_link(&standard_link(link));
             return Ok(());
         }
 
@@ -89,7 +89,7 @@ impl DependencyViewModel {
                 self.dependency.name()
             ).as_str()
         ){
-            let _ = self.capabilities.open_link(&generate_installation_link(self.name()));
+            self.capabilities.open_link(&generate_installation_link(self.name()));
         }
 
         Err(format!("{} is not installable", self.name()))

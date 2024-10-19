@@ -7,6 +7,7 @@ pub struct CLICapabilities {
     pub non_interactive: bool,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for CLICapabilities {
     fn default() -> Self {
         Self {
@@ -35,11 +36,11 @@ impl Capabilities for CLICapabilities {
         }
     }
 
-    fn open_link(&self, url: &str) -> Result<(), String> {
-        match webbrowser::open(url) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e.to_string()),
-        }
+    fn open_link(&self, url: &str) {
+        self.message(Message::bake_state(format!("opening url: '{}'", url)));
+        if let Err(e) = webbrowser::open(url) {
+            self.message(Message::error(format!("can't open browser: {}", e)));
+        };
     }
 
     fn message(&self, input: Message) {

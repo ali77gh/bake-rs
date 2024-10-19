@@ -240,9 +240,7 @@ tasks:
             true
         }
 
-        fn open_link(&self, _: &str) -> Result<(), String> {
-            Ok(())
-        }
+        fn open_link(&self, _: &str) {}
 
         fn message(&self, input: Message) {
             print!("{}", input.content());
