@@ -116,6 +116,10 @@ so if the exit code is 0 this means dependency is installed or exist but any oth
 
 You can also specify different commands or links for installing on different platforms:
 
+
+Note: by default bake will ask yes/no question before start installing, 
+but by passing '--non--interactive' switch bake will not wait for stdin and will start installing dependency. 
+
 ```yaml
 dependencies:
   - name: wget
@@ -211,6 +215,9 @@ tasks:
     commands:
       - "@this.task_with_envs --PORT 80 --build-mode release" # passing params to other task
 ```
+
+Note: by default bake will ask for env on cli if it's not set, 
+but by passing '--non--interactive' switch bake will not wait for stdin and will raise an error. 
 
 ## Plugin system
 

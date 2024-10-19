@@ -20,11 +20,11 @@ pub fn show_help() {
     );
 
     println!(
-        "    {} to run command with name (run bake --show to see list of names)\n",
+        "    {} to run command with name or index(run bake --show to see list of names and indexes)\n",
         "bake <COMMAND_NAME>".bright_yellow()
     );
     println!(
-        "    {} to run command with index (run bake --show to see list of indexes)",
-        "bake <COMMAND_INDEX>".bright_yellow()
+        "    {} to run command with name or index (yes to all questions and error if env not set, you can also use -ni)",
+        "bake <COMMAND_NAME> --non-interactive".bright_yellow()
     );
 }
