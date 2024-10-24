@@ -31,11 +31,10 @@ impl Dependency {
     }
 
     pub fn dependencies(&self) -> &[String] {
-        const EMPTY: &Vec<String> = &vec![];
         if let Some(dependencies) = &self.dependencies {
             dependencies
         } else {
-            EMPTY
+            &[]
         }
     }
 

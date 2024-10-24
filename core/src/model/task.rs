@@ -50,20 +50,18 @@ impl Task {
     }
 
     pub fn dependencies(&self) -> &[String] {
-        const EMPTY: &Vec<String> = &vec![];
         if let Some(x) = &self.dependencies {
             x
         } else {
-            EMPTY
+            &[]
         }
     }
 
     pub fn envs(&self) -> &[Param] {
-        const EMPTY: &Vec<Param> = &vec![];
         if let Some(x) = &self.envs {
             x
         } else {
-            EMPTY
+            &[]
         }
     }
 

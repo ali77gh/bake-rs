@@ -18,29 +18,26 @@ impl BakeFile {
     }
 
     pub fn plugins(&self) -> &[Plugin] {
-        const EMPTY: &Vec<Plugin> = &vec![];
         if let Some(x) = &self.plugins {
             x
         } else {
-            EMPTY
+            &[]
         }
     }
 
     pub fn dependencies(&self) -> &[Dependency] {
-        const EMPTY: &Vec<Dependency> = &vec![];
         if let Some(x) = &self.dependencies {
             x
         } else {
-            EMPTY
+            &[]
         }
     }
 
     pub fn tasks(&self) -> &[Task] {
-        const EMPTY: &Vec<Task> = &vec![];
         if let Some(x) = &self.tasks {
             x
         } else {
-            EMPTY
+            &[]
         }
     }
 }
