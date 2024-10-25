@@ -8,7 +8,7 @@ pub mod task_viewmodel;
 use std::{collections::HashMap, rc::Rc};
 
 use capabilities::Capabilities;
-use dependency_viewmodel::{DependencyViewModel, IsInstalledState};
+use dependency_viewmodel::DependencyViewModel;
 use env_validator::validate_envs;
 use env_with_role_back::EnvWithRoleBack;
 use message::Message;
@@ -99,10 +99,6 @@ impl BakeViewModel {
     /// this installs dependencies and will skip if it's already installed
     pub fn install_dependency(&self, name: &str) -> Result<(), String> {
         if let Some(dependency) = self.get_dependency(name) {
-            if dependency.is_installed(self) == IsInstalledState::Installed {
-                return Ok(());
-            }
-
             // auto yes if can't get user input
             if let Some(false) = self.caps.ask_user_yes_no(
                 format!("'{}' is not installed, do you want to install it", name).as_str(),
@@ -110,28 +106,7 @@ impl BakeViewModel {
                 return Err(format!("cancel installation {}", name));
             }
 
-            // *THIS IS RECURSIVE*
-            // install dependencies of dependency first
-            self.install_dependencies(dependency.dependencies())?;
-
-            self.caps.message(Message::bake_state(format!(
-                "dependency '{}' is installing...\n",
-                dependency.name()
-            )));
-
-            // actual installation
-            dependency.try_install(self)?;
-
-            // double check after installation
-            if dependency.is_installed(self) == IsInstalledState::NotInstalled {
-                Err(format!("failed to install {}", name))
-            } else {
-                self.caps.message(Message::bake_state(format!(
-                    "dependency '{}' is installed successfully!\n",
-                    dependency.name()
-                )));
-                Ok(())
-            }
+            dependency.try_install(self)
         } else {
             Err(format!("dependency {} not found", name))
         }

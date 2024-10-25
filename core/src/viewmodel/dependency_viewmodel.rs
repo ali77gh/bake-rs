@@ -5,7 +5,7 @@ use crate::{
     util::url::{generate_installation_link, standard_link},
 };
 
-use super::{capabilities::Capabilities, BakeViewModel};
+use super::{capabilities::Capabilities, message::Message, BakeViewModel};
 
 /// Unknown if check commands is [None] and bake is not able to check if dependency is installed
 #[derive(PartialEq)]
@@ -74,24 +74,41 @@ impl DependencyViewModel {
 
     /// tries installing dependency by running installation commands
     /// skips if it's already installed
+    /// installs dependencies of dependency recursively
+    /// double check dependency exist after installation
     /// if there is no installation commands for platform it tries to open link or generates installation link if its not specified
-    /// Err on opening link
+    /// Err on opening link (because we can not wait for user to install it manually)
     pub fn try_install(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
-        // TODO move dependencies of dependencies check and installation here from [BakeViewModel]
+        // this prevents going deeper in dependency tree
         if self.is_installed(bake_view_model) == IsInstalledState::Installed {
+            self.capabilities.message(Message::bake_state(format!(
+                "dependency '{}' is already installed\n",
+                self.name()
+            )));
             return Ok(());
         }
+
+        // *THIS IS RECURSIVE*
+        // install dependencies of dependency first
+        bake_view_model.install_dependencies(self.dependencies())?;
+
+        self.capabilities.message(Message::bake_state(format!(
+            "dependency '{}' is installing...\n",
+            self.name()
+        )));
 
         if let Ok(commands) = &self.dependency.installation_command() {
             bake_view_model.run_commands(commands)?;
 
-            // TODO this check is duplicated in [BakeViewModel]
-            match self.is_installed(bake_view_model) {
-                IsInstalledState::Installed | IsInstalledState::Unknown => return Ok(()),
-                IsInstalledState::NotInstalled => return Err(format!(
-                    "'{}' installation ends without error but double check after installation failed",
+            //double check installation
+            if self.is_installed(bake_view_model) == IsInstalledState::NotInstalled {
+                return Err(format!("'{}' installation ends without error but double check after installation failed\n", self.name()));
+            } else {
+                self.capabilities.message(Message::bake_state(format!(
+                    "dependency '{}' is installed successfully!\n",
                     self.name()
-                )),
+                )));
+                return Ok(());
             }
         }
 
