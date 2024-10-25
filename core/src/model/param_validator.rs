@@ -1,6 +1,6 @@
-use serde::Deserialize;
-
-#[derive(Debug, PartialEq, Deserialize, Clone)]
+/// Not a yaml model (has no Deserialize macro)
+/// In yaml we use string and we use [ParamValidator::try_from] to custom parse for [ParamValidator]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ParamValidator {
     Number, // Integer and float
     Integer,
@@ -28,6 +28,10 @@ impl ParamValidator {
 
 impl TryFrom<&str> for ParamValidator {
     type Error = String;
+
+    /// ### Custom parser for string in yaml model
+    /// syntax:  variates(v1|v2)
+    /// example: variates(debug|release)
     fn try_from(value: &str) -> Result<ParamValidator, String> {
         match value {
             "integer" | "int" => Ok(ParamValidator::Integer),

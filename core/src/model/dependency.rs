@@ -4,6 +4,8 @@ use crate::util::platform_specific::{get_platform_name, platform_specific};
 
 use super::command::Command;
 
+/// yaml model with platform specific command filter for getters
+/// for view_model see [crate::viewmodel::dependency_viewmodel]
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Dependency {
     name: String,
@@ -38,6 +40,13 @@ impl Dependency {
         }
     }
 
+    // TODO return enum as error with Error trait impl
+    /// ## Returns
+    /// list of check dependency exist on machine commands
+    ///
+    /// ## Errors:
+    /// - command parser error
+    /// - command not found
     pub fn check(&self) -> Result<Vec<Command>, String> {
         let commands = platform_specific(
             self.check.as_ref(),
@@ -67,6 +76,13 @@ impl Dependency {
         .cloned()
     }
 
+    // TODO return enum as error with Error trait impl
+    /// ## Returns
+    /// list of dependency installation commands
+    ///
+    /// ## Errors:
+    /// - command parser error
+    /// - command not found on platform
     pub fn installation_command(&self) -> Result<Vec<Command>, String> {
         let commands = platform_specific(
             self.commands.as_ref(),

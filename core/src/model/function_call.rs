@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
-
-#[derive(Debug, PartialEq, Deserialize)]
+/// Not a yaml model (has no Deserialize macro)
+/// In yaml we use string and we use [FunctionCall::try_from] to custom parse for [FunctionCall]
+#[derive(Debug, PartialEq)]
 pub struct FunctionCall {
     namespace: String,
     function: String,
+    //TODO rename this to args according this: https://stackoverflow.com/questions/156767/whats-the-difference-between-an-argument-and-a-parameter#:~:text=A%20parameter%20is%20the%20variable,function%20when%20it%20is%20called.
     params: HashMap<String, String>,
 }
 
+/// getters and factory function
 impl FunctionCall {
     pub fn new(namespace: String, function: String, params: HashMap<String, String>) -> Self {
         Self {
@@ -34,6 +36,14 @@ impl FunctionCall {
 impl TryFrom<&str> for FunctionCall {
     type Error = String;
 
+    /// Custom parser for string in yaml model
+    /// syntax is like:
+    /// '@namespace.function_name --param1Name param1Value --param2Name param2Value'
+    /// or
+    /// use 'this' for current yaml file
+    /// '@this.function_name --param1Name param1Value --param2Name param2Value'
+    /// hidden namespace means 'this':
+    /// '@function_name --param1Name param1Value --param2Name param2Value'
     fn try_from(value: &str) -> Result<Self, String> {
         let str = value.trim();
 
@@ -50,7 +60,12 @@ impl TryFrom<&str> for FunctionCall {
             1 => (&"this", sp.first().unwrap()),
             // Safety: len is 2 so first and second always exist
             2 => (sp.first().unwrap(), sp.get(1).unwrap()),
-            _ => return Err("syntax error( two dots found in @namespace.functionName)".to_string()),
+            _ => {
+                return Err(
+                    "syntax error( more than one dots found in @namespace.functionName)"
+                        .to_string(),
+                )
+            }
         };
 
         if namespace.is_empty() {

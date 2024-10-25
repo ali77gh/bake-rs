@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+/// yaml model for task params
+/// name used in function call syntax as namespace see here: [crate::model::function_call::FunctionCall::namespace]
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Plugin {
     name: String,

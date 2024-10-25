@@ -2,6 +2,8 @@ use serde::Deserialize;
 
 use super::{dependency::Dependency, plugin::Plugin, task::Task};
 
+/// yaml model for serde_yaml parser
+/// this is root model
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct BakeFile {
     plugins: Option<Vec<Plugin>>,
@@ -9,6 +11,7 @@ pub struct BakeFile {
     tasks: Option<Vec<Task>>,
 }
 
+/// getters and factory function
 impl BakeFile {
     pub fn from_yaml(yaml: &str) -> Result<BakeFile, String> {
         match serde_yaml::from_str::<BakeFile>(yaml) {
@@ -79,6 +82,5 @@ tasks:
         let bake_file = BakeFile::from_yaml(yaml).unwrap();
 
         dbg!(bake_file);
-        // assert!(false);
     }
 }

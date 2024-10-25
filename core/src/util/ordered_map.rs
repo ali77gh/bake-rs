@@ -1,5 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
+/// this helps to keep order of insert in a hashmap
 pub struct OrderedMap<Key: Eq + Hash, Value> {
     data: Vec<Value>,
     positions: HashMap<Key, usize>,

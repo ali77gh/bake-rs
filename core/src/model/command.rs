@@ -1,8 +1,8 @@
-use serde::Deserialize;
-
 use super::function_call::FunctionCall;
 
-#[derive(Debug, PartialEq, Deserialize)]
+/// Not a yaml model (has no Deserialize macro)
+/// In yaml we use string and we use [Command::try_from] to custom parse for [Command]
+#[derive(Debug, PartialEq)]
 pub enum Command {
     ShellCommand(String),
     FunctionCall(FunctionCall),
@@ -10,6 +10,10 @@ pub enum Command {
 
 impl TryFrom<&str> for Command {
     type Error = String;
+
+    /// Custom parser for string in yaml model
+    /// function calls started with '@'
+    /// and anything not started with @ consider as os default shell command
     fn try_from(str: &str) -> Result<Self, String> {
         let str = str.trim();
         if str.is_empty() {

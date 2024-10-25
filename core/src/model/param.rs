@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 use super::param_validator::ParamValidator;
 
+/// yaml model for task params
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Param {
     name: String,

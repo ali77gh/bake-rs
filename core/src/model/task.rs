@@ -4,6 +4,7 @@ use crate::util::platform_specific::{get_platform_name, platform_specific};
 
 use super::{command::Command, param::Param};
 
+/// yaml model
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Task {
     name: String,
@@ -17,6 +18,7 @@ pub struct Task {
     commands_macos: Option<Vec<String>>,
 }
 
+/// factory function and getters
 #[allow(clippy::too_many_arguments)]
 impl Task {
     pub fn new(
@@ -65,6 +67,13 @@ impl Task {
         }
     }
 
+    // TODO return enum as error with Error trait impl
+    /// ## Returns
+    /// list of commands to do the task
+    ///
+    /// ## Errors:
+    /// - command parser error
+    /// - command not found on platform
     pub fn commands(&self) -> Result<Vec<Command>, String> {
         let commands = platform_specific(
             self.commands.as_ref(),

@@ -1,5 +1,10 @@
 #![allow(unused_variables)]
 
+/// compile time platform specific command filter
+/// if platform specific command exist if will return it
+/// if it's not exist returns common
+/// and if common is [None] result will be [None] means task is not supported by current platform
+#[inline]
 pub fn platform_specific<'a, T>(
     common: Option<&'a T>,
     linux: Option<&'a T>,
@@ -21,6 +26,7 @@ pub fn platform_specific<'a, T>(
     common
 }
 
+#[inline]
 pub fn get_platform_name() -> &'static str {
     #[cfg(target_os = "linux")]
     return "Linux";
