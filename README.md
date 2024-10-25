@@ -213,7 +213,7 @@ syntax is like:
 tasks:
   - name: task_with_envs_caller
     commands:
-      - "@this.task_with_envs --PORT 80 --build-mode release" # passing params to other task
+      - "@this.task_with_envs --PORT 80 --build-mode release" # passing args to other task
 ```
 
 Note: by default bake will ask for env on cli if it's not set, 

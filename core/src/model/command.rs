@@ -72,7 +72,7 @@ mod tests {
             Err("syntax error(function name is missing)".to_string())
         );
 
-        // missing params (ok)
+        // missing args (ok)
         let command = Command::try_from("@fs.copy");
         assert_eq!(
             command,

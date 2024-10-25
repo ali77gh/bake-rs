@@ -175,7 +175,7 @@ impl BakeViewModel {
             Command::FunctionCall(fc) => match fc.namespace() {
                 "this" => {
                     let mut env_with_role_back = EnvWithRoleBack::new();
-                    env_with_role_back.set_envs(fc.params());
+                    env_with_role_back.set_envs(fc.args());
                     let r = self.run_task(fc.function());
                     env_with_role_back.role_back();
                     r
@@ -183,7 +183,7 @@ impl BakeViewModel {
                 namespace => match self.plugins.get(namespace) {
                     Some(x) => {
                         let mut env_with_role_back = EnvWithRoleBack::new();
-                        env_with_role_back.set_envs(fc.params());
+                        env_with_role_back.set_envs(fc.args());
                         let r = x.run_task(fc.function());
                         env_with_role_back.role_back();
                         r

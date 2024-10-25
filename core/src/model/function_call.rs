@@ -6,17 +6,16 @@ use std::collections::HashMap;
 pub struct FunctionCall {
     namespace: String,
     function: String,
-    //TODO rename this to args according this: https://stackoverflow.com/questions/156767/whats-the-difference-between-an-argument-and-a-parameter#:~:text=A%20parameter%20is%20the%20variable,function%20when%20it%20is%20called.
-    params: HashMap<String, String>,
+    args: HashMap<String, String>,
 }
 
 /// getters and factory function
 impl FunctionCall {
-    pub fn new(namespace: String, function: String, params: HashMap<String, String>) -> Self {
+    pub fn new(namespace: String, function: String, args: HashMap<String, String>) -> Self {
         Self {
             namespace,
             function,
-            params,
+            args,
         }
     }
 
@@ -28,8 +27,8 @@ impl FunctionCall {
         &self.function
     }
 
-    pub fn params(&self) -> &HashMap<String, String> {
-        &self.params
+    pub fn args(&self) -> &HashMap<String, String> {
+        &self.args
     }
 }
 
@@ -75,7 +74,7 @@ impl TryFrom<&str> for FunctionCall {
             return Err("syntax error(function name is missing)".to_string());
         }
 
-        let mut params = HashMap::<String, String>::new();
+        let mut args = HashMap::<String, String>::new();
         let sp = str.split(' ').skip(1).collect::<Vec<&str>>(); // skip namespace and function name
         if !sp.is_empty() {
             if sp.len() % 2 != 0 {
@@ -93,7 +92,7 @@ impl TryFrom<&str> for FunctionCall {
                         ));
                     }
                     let key = key[2..].to_string(); // pop -- from key
-                    params.insert(key, value);
+                    args.insert(key, value);
                 }
             }
         }
@@ -101,7 +100,7 @@ impl TryFrom<&str> for FunctionCall {
         Ok(Self::new(
             namespace.to_string(),
             function_name.to_string(),
-            params,
+            args,
         ))
     }
 }
