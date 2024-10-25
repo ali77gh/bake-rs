@@ -74,7 +74,13 @@ impl DependencyViewModel {
 
         if let Ok(commands) = &self.dependency.installation_command() {
             bake_view_model.run_commands(commands)?;
-            return Ok(());
+            match self.is_installed(bake_view_model) {
+                IsInstalledState::Installed | IsInstalledState::Unknown => return Ok(()),
+                IsInstalledState::NotInstalled => return Err(format!(
+                    "'{}' installation ends without error but double check after installation failed",
+                    self.name()
+                )),
+            }
         }
 
         if let Ok(link) = &self.dependency.link() {
