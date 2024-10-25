@@ -1,3 +1,6 @@
+/// It's string + [MessageType]
+/// [MessageType] used to show message with colors and icons if needed
+/// There is also a [MessageType::Normal] In case you don't in colors and icons indicators
 pub struct Message {
     message_type: MessageType,
     content: String,

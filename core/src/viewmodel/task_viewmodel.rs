@@ -7,6 +7,8 @@ use crate::{
 
 use super::{capabilities::Capabilities, BakeViewModel};
 
+/// contains [Task] yaml model but it actually contains logic (dependency checks and command running)
+/// And use [Capabilities] for no side effects
 pub struct TaskViewModel {
     capabilities: Rc<dyn Capabilities>,
     task: Task,
@@ -17,6 +19,7 @@ impl TaskViewModel {
         Self { capabilities, task }
     }
 
+    /// static function to generate hashmap for [BakeViewModel]
     pub fn hashmap_from_tasks(
         capabilities: Rc<dyn Capabilities>,
         tasks: &[Task],
@@ -29,6 +32,8 @@ impl TaskViewModel {
         map
     }
 
+    // TODO move dependencies installation and env checks here (from BakeViewModel) and add to function doc :)
+    /// run commands
     pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
         let commands = self.task.commands()?;
         bake_view_model.run_commands(&commands)

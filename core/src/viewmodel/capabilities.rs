@@ -1,7 +1,10 @@
 use super::message::Message;
 
+/// This trait makes view_model pure and side_effect independent
+/// it will implemented by CLI and GUI crate differently
+/// we put all side effects in here
 pub trait Capabilities {
-    /// returns None if file not bakefile exist
+    /// returns [None] if file not exist
     fn read_file(&self, file_name: &str) -> Option<String>;
 
     /// returns true if non zero code
@@ -22,16 +25,25 @@ pub trait Capabilities {
         true
     }
 
+    /// open link in user browser or just show user the link
     fn open_link(&self, url: &str);
 
+    /// message from bake to user
+    /// also consider to user [Message::message_type] to use colors and more
     fn message(&self, input: Message);
+
+    /// take input from user
+    /// return [None] if you cant or don't want to (example: --non-interactive)
     fn input(&self) -> Option<String>;
 
+    /// show user question and takes input from user
+    /// override this if it's not simple as calling message() and input()
     fn ask_user(&self, question: &str) -> Option<String> {
         self.message(Message::question(question));
         self.input()
     }
 
+    /// same as [ask_user] but it's a yes/no question
     fn ask_user_yes_no(&self, question: &str) -> Option<bool> {
         let answer = self
             .ask_user(format!("{} (yes|no)", question).as_str())?

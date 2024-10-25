@@ -29,7 +29,7 @@ pub struct BakeViewModel {
 }
 
 impl BakeViewModel {
-    /// returns None if bakefile not exist
+    /// this factory function reads file from path and parse yaml and convert yaml models to viewmodel
     pub fn new_from_file(caps: Rc<dyn Capabilities>, file_name: &str) -> Result<Self, String> {
         if let Some(content) = caps.read_file(file_name) {
             let bakefile = BakeFile::from_yaml(&content)?;
@@ -47,10 +47,7 @@ impl BakeViewModel {
         }
     }
 
-    pub fn from_plugin(caps: Rc<dyn Capabilities>, plugin: &Plugin) -> Result<Self, String> {
-        Self::new_from_file(caps, plugin.path())
-    }
-
+    /// this converts list of plugin yaml models to BakeViewModels (which works same as plugins)
     pub fn from_plugins(
         caps: Rc<dyn Capabilities>,
         plugins: &[Plugin],
@@ -65,6 +62,7 @@ impl BakeViewModel {
         Ok(hashmap)
     }
 
+    /// default factory function reads yaml form [BAKE_FILE_NAME]
     pub fn new(caps: Rc<dyn Capabilities>) -> Result<Self, String> {
         Self::new_from_file(caps, BAKE_FILE_NAME)
     }
@@ -89,6 +87,8 @@ impl BakeViewModel {
         self.dependencies.values().collect()
     }
 
+    /// Same as [install_dependencies] but in loop
+    /// It will stop iteration on error
     pub fn install_dependencies(&self, names: &[String]) -> Result<(), String> {
         for name in names {
             self.install_dependency(name)?;
@@ -96,11 +96,13 @@ impl BakeViewModel {
         Ok(())
     }
 
+    /// this installs dependencies and will skip if it's already installed
     pub fn install_dependency(&self, name: &str) -> Result<(), String> {
         if let Some(dependency) = self.get_dependency(name) {
             if dependency.is_installed(self) == IsInstalledState::Installed {
                 return Ok(());
             }
+
             // auto yes if can't get user input
             if let Some(false) = self.caps.ask_user_yes_no(
                 format!("'{}' is not installed, do you want to install it", name).as_str(),
@@ -108,12 +110,19 @@ impl BakeViewModel {
                 return Err(format!("cancel installation {}", name));
             }
 
+            // *THIS IS RECURSIVE*
+            // install dependencies of dependency first
             self.install_dependencies(dependency.dependencies())?;
+
             self.caps.message(Message::bake_state(format!(
                 "dependency '{}' is installing...\n",
                 dependency.name()
             )));
+
+            // actual installation
             dependency.try_install(self)?;
+
+            // double check after installation
             if dependency.is_installed(self) == IsInstalledState::NotInstalled {
                 Err(format!("failed to install {}", name))
             } else {
@@ -128,6 +137,7 @@ impl BakeViewModel {
         }
     }
 
+    /// takes a taskName or taskIndex and tries to run task
     pub fn run_task(&self, name: &str) -> Result<(), String> {
         if let Some(task) = self.get_task(name) {
             self.install_dependencies(task.dependencies())?;
@@ -152,13 +162,14 @@ impl BakeViewModel {
         }
     }
 
+    /// command can be Shell or Function call
     pub fn run_command(&self, command: &Command) -> Result<(), String> {
         match command {
             Command::ShellCommand(cmd) => {
                 if self.caps.execute(cmd) {
                     Ok(())
                 } else {
-                    Err("".to_string())
+                    Err(format!("Error while running {}", cmd))
                 }
             }
             Command::FunctionCall(fc) => match fc.namespace() {
@@ -183,6 +194,8 @@ impl BakeViewModel {
         }
     }
 
+    /// Runs [run_command] in loop
+    /// stops iteration on error
     pub fn run_commands(&self, commands: &[Command]) -> Result<(), String> {
         for command in commands {
             self.run_command(command)?;

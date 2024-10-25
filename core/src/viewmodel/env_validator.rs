@@ -4,6 +4,7 @@ use crate::model::param::Param;
 
 use super::{capabilities::Capabilities, task_viewmodel::TaskViewModel};
 
+/// It's just [validate_env] in a loop which stops iteration on error
 pub fn validate_envs(cap: Rc<dyn Capabilities>, task: &TaskViewModel) -> Result<(), String> {
     for env in task.params() {
         validate_env(cap.clone(), env)?;
