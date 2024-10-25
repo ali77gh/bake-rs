@@ -40,7 +40,7 @@ pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String
         },
     };
     match env.validator() {
-        Some(validator) => match validator.validate(&value) {
+        Some(validator) => match validator?.validate(&value) {
             Ok(()) => Ok(()),
             Err(e) => Err(format!(
                 "environment variable validation error: '{}'='{}' ({})",

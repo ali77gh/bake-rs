@@ -5,12 +5,12 @@ use super::param_validator::ParamValidator;
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Param {
     name: String,
-    validator: Option<ParamValidator>,
+    validator: Option<String>,
     default: Option<String>,
 }
 
 impl Param {
-    pub fn new(name: String, validation: Option<ParamValidator>) -> Self {
+    pub fn new(name: String, validation: Option<String>) -> Self {
         Self {
             name,
             validator: validation,
@@ -26,8 +26,10 @@ impl Param {
         &self.name
     }
 
-    pub fn validator(&self) -> Option<&ParamValidator> {
-        self.validator.as_ref()
+    pub fn validator(&self) -> Option<Result<ParamValidator, String>> {
+        self.validator
+            .as_ref()
+            .map(|x| ParamValidator::try_from(x.as_str()))
     }
 }
 

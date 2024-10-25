@@ -190,7 +190,7 @@ You can also specify simple validation for your env that checks value before run
 1. number (float or integer)
 1. integer
 1. bool
-1. !variants [ variation1, variation2, variation3, ...]
+1. variants(variation1,variation2,variation3,...)
 
 ```yaml
 tasks:
@@ -202,7 +202,7 @@ tasks:
 
       - name: build-mode
         default: debug
-        validator: !variants [ debug, release ]
+        validator: variants(debug|release)
 ```
 
 And you can pass env to a task while calling it from another task
