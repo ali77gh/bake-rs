@@ -95,6 +95,18 @@ impl Capabilities for CLICapabilities {
             Some(buffer)
         }
     }
+
+    fn set_env(&self, name: &str, value: &str) {
+        std::env::set_var(name, value);
+    }
+
+    fn get_env(&self, name: &str) -> Option<String> {
+        std::env::var(name).ok()
+    }
+
+    fn remove_env(&self, name: &str) {
+        std::env::remove_var(name)
+    }
 }
 
 #[cfg(target_os = "windows")]

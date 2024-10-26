@@ -138,17 +138,17 @@ impl BakeViewModel {
             Command::FunctionCall(fc) => match fc.namespace() {
                 "this" => {
                     let mut env_with_role_back = EnvWithRoleBack::new();
-                    env_with_role_back.set_envs(fc.args());
+                    env_with_role_back.set_envs(self.caps.clone(), fc.args());
                     let r = self.run_task(fc.function());
-                    env_with_role_back.role_back();
+                    env_with_role_back.role_back(self.caps.clone());
                     r
                 }
                 namespace => match self.plugins.get(namespace) {
                     Some(x) => {
                         let mut env_with_role_back = EnvWithRoleBack::new();
-                        env_with_role_back.set_envs(fc.args());
+                        env_with_role_back.set_envs(self.caps.clone(), fc.args());
                         let r = x.run_task(fc.function());
-                        env_with_role_back.role_back();
+                        env_with_role_back.role_back(self.caps.clone());
                         r
                     }
                     None => Err(format!("namespace '{}' not found", namespace)),
@@ -226,6 +226,18 @@ tasks:
             let mut buffer = String::new();
             std::io::stdin().read_line(&mut buffer).unwrap();
             Some(buffer)
+        }
+
+        fn set_env(&self, name: &str, value: &str) {
+            std::env::set_var(name, value);
+        }
+
+        fn get_env(&self, name: &str) -> Option<String> {
+            std::env::var(name).ok()
+        }
+
+        fn remove_env(&self, name: &str) {
+            std::env::remove_var(name)
         }
     }
 

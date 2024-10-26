@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
+
+use super::capabilities::Capabilities;
 
 /// This struct can save env current state and role back after you run you'r shell commands
 ///
@@ -26,28 +28,28 @@ impl EnvWithRoleBack {
 
     /// saves previous state of overwrote envs
     /// also sets envs as system envs
-    pub fn set_envs(&mut self, envs: &HashMap<String, String>) {
+    pub fn set_envs(&mut self, caps: Rc<dyn Capabilities>, envs: &HashMap<String, String>) {
         for (key, value) in envs {
             // check if its already exist
-            match std::env::var(key) {
-                Ok(value) => {
+            match caps.get_env(key) {
+                Some(value) => {
                     self.previous_envs.insert(key.to_string(), Some(value));
                 }
-                Err(_) => {
+                None => {
                     self.previous_envs.insert(key.to_string(), None);
                 }
             }
 
-            std::env::set_var(key, value);
+            caps.set_env(key, value);
         }
     }
 
     /// resets envs to previous_envs states
-    pub fn role_back(self) {
+    pub fn role_back(self, caps: Rc<dyn Capabilities>) {
         for (key, value) in self.previous_envs {
             match value {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
+                Some(value) => caps.set_env(key.as_str(), value.as_str()),
+                None => caps.remove_env(key.as_str()),
             }
         }
     }

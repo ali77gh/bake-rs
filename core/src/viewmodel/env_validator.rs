@@ -18,11 +18,11 @@ pub fn validate_envs(cap: Rc<dyn Capabilities>, task: &TaskViewModel) -> Result<
 /// and set it to process env vars
 pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String> {
     let key = env.name();
-    let value = match std::env::var(key) {
-        Ok(value) => value,
-        Err(_) => match env.default() {
+    let value = match cap.get_env(key) {
+        Some(value) => value,
+        None => match env.default() {
             Some(value) => {
-                std::env::set_var(key, value); // load yaml value to env
+                cap.set_env(key, value); // load yaml value to env
                 value.to_string()
             }
             None => {
@@ -35,7 +35,7 @@ pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String
                     .ok_or(format!("can't get environment variable '{0}'", key))?
                     .trim()
                     .to_string();
-                std::env::set_var(key, &user_input);
+                cap.set_env(key, &user_input);
                 user_input.to_string()
             }
         },

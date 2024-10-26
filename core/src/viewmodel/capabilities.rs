@@ -51,4 +51,12 @@ pub trait Capabilities {
         let answer = answer.trim();
         Some(answer == "yes" || answer == "y")
     }
+
+    /// standard env set implementation
+    fn set_env(&self, name: &str, value: &str);
+
+    /// standard env get implementation
+    fn get_env(&self, name: &str) -> Option<String>;
+
+    fn remove_env(&self, name: &str);
 }
