@@ -2,10 +2,12 @@ use std::rc::Rc;
 
 use crate::{
     model::{param::Param, task::Task},
-    util::ordered_map::OrderedMap,
+    util::{measure_execution_time::measure_execution_time_result, ordered_map::OrderedMap},
 };
 
-use super::{capabilities::Capabilities, BakeViewModel};
+use super::{
+    capabilities::Capabilities, env_validator::validate_envs, message::Message, BakeViewModel,
+};
 
 /// contains [Task] yaml model but it actually contains logic (dependency checks and command running)
 /// And use [Capabilities] for no side effects
@@ -32,11 +34,31 @@ impl TaskViewModel {
         map
     }
 
-    // TODO move dependencies installation and env checks here (from BakeViewModel) and add to function doc :)
+    /// install dependencies of task
+    /// env checks
     /// run commands
+    /// and show some messages including task time
     pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
-        let commands = self.task.commands()?;
-        bake_view_model.run_commands(&commands)
+        // install dependencies of task
+        // *this is recursive*
+        bake_view_model.install_dependencies(self.dependencies())?;
+
+        validate_envs(Rc::clone(&self.capabilities), self)?;
+
+        self.capabilities.message(Message::bake_state(format!(
+            "task '{}' is running...\n",
+            self.name()
+        )));
+
+        let (_, duration) =
+            measure_execution_time_result(|| bake_view_model.run_commands(&self.task.commands()?))?;
+
+        self.capabilities.message(Message::bake_state(format!(
+            "Task '{}' finished successfully. time: {}ms\n",
+            self.name(),
+            duration.as_millis()
+        )));
+        Ok(())
     }
 
     pub fn name(&self) -> &str {

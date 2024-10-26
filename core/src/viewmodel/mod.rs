@@ -9,14 +9,12 @@ use std::{collections::HashMap, rc::Rc};
 
 use capabilities::Capabilities;
 use dependency_viewmodel::DependencyViewModel;
-use env_validator::validate_envs;
 use env_with_role_back::EnvWithRoleBack;
-use message::Message;
 use task_viewmodel::TaskViewModel;
 
 use crate::{
     model::{bake_file::BakeFile, command::Command, plugin::Plugin},
-    util::{measure_execution_time::measure_execution_time_result, ordered_map::OrderedMap},
+    util::ordered_map::OrderedMap,
 };
 
 const BAKE_FILE_NAME: &str = "bakefile.yaml";
@@ -115,17 +113,7 @@ impl BakeViewModel {
     /// takes a taskName or taskIndex and tries to run task
     pub fn run_task(&self, name: &str) -> Result<(), String> {
         if let Some(task) = self.get_task(name) {
-            self.install_dependencies(task.dependencies())?;
-            validate_envs(Rc::clone(&self.caps), task)?;
-            self.caps.message(Message::bake_state(format!(
-                "task '{name}' is running...\n"
-            )));
-            let (_, duration) = measure_execution_time_result(|| task.run(self))?;
-            self.caps.message(Message::bake_state(format!(
-                "Task '{name}' finished successfully. time: {}ms\n",
-                duration.as_millis()
-            )));
-            Ok(())
+            task.run(self)
         } else {
             let index = name
                 .parse::<usize>()
