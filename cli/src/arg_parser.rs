@@ -6,6 +6,7 @@ pub enum ParsedArgs {
     ShowTasks,
     Command(String, bool), // (command_name, --non-interactive)
     Invalid,
+    Nothing,
 }
 
 pub fn get_args() -> ParsedArgs {
@@ -34,5 +35,5 @@ pub fn get_args() -> ParsedArgs {
         }
     }
 
-    ParsedArgs::Invalid
+    ParsedArgs::Nothing
 }

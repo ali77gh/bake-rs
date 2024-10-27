@@ -1,6 +1,7 @@
 mod arg_parser;
 mod capabilities;
 mod help;
+mod repl;
 mod show_tasks;
 
 use core::util::update::update;
@@ -15,6 +16,7 @@ use capabilities::CLICapabilities;
 use colored::Colorize;
 use core::viewmodel::capabilities::Capabilities;
 use help::show_help;
+use repl::start_repl;
 
 fn main() {
     println!(
@@ -24,7 +26,10 @@ fn main() {
     );
     match get_args() {
         ParsedArgs::ShowTasks => show_tasks::show_tasks(bake(CLICapabilities::default()).tasks()),
-        ParsedArgs::Invalid => println!("invalid args. \ntry run 'bake --help'"), // TODO show help
+        ParsedArgs::Invalid => {
+            println!("invalid args. \ntry run 'bake --help'");
+            show_help();
+        }
         ParsedArgs::Command(x, non_interactive) => {
             match bake(CLICapabilities { non_interactive }).run_task(&x) {
                 Ok(()) => {}
@@ -38,6 +43,7 @@ fn main() {
         ParsedArgs::Version => {} // already printed
         ParsedArgs::Update => update(&CLICapabilities::default()),
         ParsedArgs::Help => show_help(),
+        ParsedArgs::Nothing => start_repl(),
     }
 }
 
