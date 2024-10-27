@@ -1,3 +1,4 @@
+use colored::Colorize;
 use core::viewmodel::capabilities::Capabilities;
 use core::viewmodel::message::{Message, MessageType};
 use std::io::Write;
@@ -44,8 +45,6 @@ impl Capabilities for CLICapabilities {
     }
 
     fn message(&self, input: Message) {
-        use colored::Colorize;
-
         // prevent printing message in non-interactive mode
         if self.non_interactive && *input.message_type() == MessageType::Question {
             return;
@@ -94,6 +93,19 @@ impl Capabilities for CLICapabilities {
             std::io::stdin().read_line(&mut buffer).unwrap();
             Some(buffer)
         }
+    }
+
+    fn ask_user(&self, question: &str) -> Option<String> {
+        rustyline::Editor::<()>::new()
+            .readline(
+                format!(
+                    " {}: {}? ",
+                    " 🯄 Question ".on_bright_yellow().black(),
+                    question.bright_yellow()
+                )
+                .as_str(),
+            )
+            .ok()
     }
 
     fn set_env(&self, name: &str, value: &str) {

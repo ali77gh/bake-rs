@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 colored = "2.1.0"
 core = { path = "../core"}
+rustyline = "=5.0.2"
 webbrowser = "1.0.1"
