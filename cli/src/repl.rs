@@ -17,9 +17,14 @@ pub fn start_repl() {
 
     loop {
         show_tasks(bake.tasks());
-        let task_name = caps
-            .ask_user("which task do you want to run (enter name or index)")
-            .expect("task name expected");
+        let task_name = match caps.ask_user("which task do you want to run (enter name or index)") {
+            Some(x) => x,
+            None => {
+                println!("Bake: bye bye!");
+                exit(1);
+            }
+        };
+
         let task_name = task_name.trim();
         if let Err(e) = bake.run_task(task_name) {
             CLICapabilities::default().message(Message::error(format!("{e}\n")));
