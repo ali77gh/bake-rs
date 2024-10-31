@@ -43,15 +43,24 @@ impl TaskViewModel {
         // *this is recursive*
         bake_view_model.install_dependencies(self.dependencies())?;
 
-        validate_envs(Rc::clone(&self.capabilities), self)?;
+        let env_role_back = validate_envs(Rc::clone(&self.capabilities), self)?;
 
         self.capabilities.message(Message::bake_state(format!(
             "task '{}' is running...\n",
             self.name()
         )));
 
-        let (_, duration) =
-            measure_execution_time_result(|| bake_view_model.run_commands(&self.task.commands()?))?;
+        // *this is recursive*
+        // we should do role back anyway (does not matter if task fails or not)
+        // so we can not use '?' operator here
+        // we should do this after role back
+        let r =
+            measure_execution_time_result(|| bake_view_model.run_commands(&self.task.commands()?));
+
+        env_role_back.role_back(self.capabilities.clone());
+
+        // here after doing role back we use '?' operator
+        let (_, duration) = r?;
 
         self.capabilities.message(Message::bake_state(format!(
             "Task '{}' finished successfully. time: {}ms\n",

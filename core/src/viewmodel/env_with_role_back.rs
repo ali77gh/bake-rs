@@ -26,21 +26,26 @@ impl EnvWithRoleBack {
         }
     }
 
-    /// saves previous state of overwrote envs
-    /// also sets envs as system envs
+    /// saves previous state of overwrote env
+    /// also sets env as system env
+    pub fn set_env(&mut self, caps: Rc<dyn Capabilities>, key: &str, value: &str) {
+        // check if its already exist
+        match caps.get_env(key) {
+            Some(value) => {
+                self.previous_envs.insert(key.to_string(), Some(value));
+            }
+            None => {
+                self.previous_envs.insert(key.to_string(), None);
+            }
+        }
+
+        caps.set_env(key, value);
+    }
+
+    /// loops over [Self::set_env]
     pub fn set_envs(&mut self, caps: Rc<dyn Capabilities>, envs: &HashMap<String, String>) {
         for (key, value) in envs {
-            // check if its already exist
-            match caps.get_env(key) {
-                Some(value) => {
-                    self.previous_envs.insert(key.to_string(), Some(value));
-                }
-                None => {
-                    self.previous_envs.insert(key.to_string(), None);
-                }
-            }
-
-            caps.set_env(key, value);
+            self.set_env(caps.clone(), key, value);
         }
     }
 

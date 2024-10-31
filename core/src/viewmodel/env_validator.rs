@@ -2,27 +2,42 @@ use std::rc::Rc;
 
 use crate::model::param::Param;
 
-use super::{capabilities::Capabilities, task_viewmodel::TaskViewModel};
+use super::{
+    capabilities::Capabilities, env_with_role_back::EnvWithRoleBack, task_viewmodel::TaskViewModel,
+};
 
 /// It's just [validate_env] in a loop which stops iteration on error
-pub fn validate_envs(cap: Rc<dyn Capabilities>, task: &TaskViewModel) -> Result<(), String> {
+pub fn validate_envs(
+    cap: Rc<dyn Capabilities>,
+    task: &TaskViewModel,
+) -> Result<EnvWithRoleBack, String> {
+    let mut env_with_role_back = EnvWithRoleBack::new();
     for env in task.params() {
-        validate_env(cap.clone(), env)?;
+        if let Err(e) = validate_env(cap.clone(), env, &mut env_with_role_back) {
+            // we should role back what we get from user if something goes wrong
+            env_with_role_back.role_back(cap);
+            return Err(e);
+        };
     }
-    Ok(())
+    Ok(env_with_role_back)
 }
 
 /// Value in yaml consider as default value
 /// So this function first tries to get value from env vars
 /// and if value is not there then it tries to get default from yaml
 /// and set it to process env vars
-pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String> {
+/// if not it will ask user for value
+pub fn validate_env(
+    cap: Rc<dyn Capabilities>,
+    env: &Param,
+    env_with_role_back: &mut EnvWithRoleBack,
+) -> Result<(), String> {
     let key = env.name();
     let value = match cap.get_env(key) {
         Some(value) => value,
         None => match env.default() {
             Some(value) => {
-                cap.set_env(key, value); // load yaml value to env
+                env_with_role_back.set_env(cap, key, value);
                 value.to_string()
             }
             None => {
@@ -35,7 +50,7 @@ pub fn validate_env(cap: Rc<dyn Capabilities>, env: &Param) -> Result<(), String
                     .ok_or(format!("can't get environment variable '{0}'", key))?
                     .trim()
                     .to_string();
-                cap.set_env(key, &user_input);
+                env_with_role_back.set_env(cap, key, &user_input);
                 user_input.to_string()
             }
         },
