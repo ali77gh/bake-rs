@@ -8,3 +8,7 @@ colored = "2.1.0"
 core = { path = "../core"}
 rustyline = "=5.0.2"
 webbrowser = "1.0.1"
+
+[[bin]]
+name = "bake"
+path = "src/main.rs"
