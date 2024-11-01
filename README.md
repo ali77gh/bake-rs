@@ -21,6 +21,9 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
 
 - [Bake-rs](#bake-rs)
   - [Table of content](#table-of-content)
+  - [Installation](#installation)
+    - [Linux, Mac, WSL and Docker:](#linux-mac-wsl-and-docker)
+    - [Windows:](#windows)
   - [Basic](#basic)
     - [Usage](#usage)
   - [Dependencies](#dependencies)
@@ -30,6 +33,17 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
   - [Plugin system](#plugin-system)
   - [Stars](#stars)
 
+
+## Installation
+
+### Linux, Mac, WSL and Docker:
+Single command installation:
+```bash
+curl -sfL https://raw.githubusercontent.com/ali77gh/bake-rs/master/install.sh | sudo bash -
+```
+
+### Windows:
+Download latest release from [here](https://github.com/ali77gh/bake-rs/releases) and copy that where you want and than add installation path to PATH env variable and than you are good to go.
 
 ## Basic
 
