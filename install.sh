@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# the -e switch terminate script on first non zero code
+set -e
+
 # this script needs root access to copy binary to /usr/bin
 
 repo="ali77gh/bake-rs"
