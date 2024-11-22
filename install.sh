@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# this script needs root access
+# this script needs root access to copy binary to /usr/bin
 
 repo="ali77gh/bake-rs"
 binary_name="bake"
@@ -18,12 +18,12 @@ then
     release_file_name="bake-macOS-x86_64.tar.gz"
 fi
 
-echo "downloading..."
-tag_name=$(curl --silent https://api.github.com/repos/$repo/releases/latest \
-                  | grep '"tag_name"' \
-                  | sed --regexp-extended 's/.*"([^"]+)".*/\1/')
+echo 'getting "tag_name" from github...'
+api_url="https://api.github.com/repos/$repo/releases/latest"
+tag_name=$(curl --silent $api_url | grep '"tag_name"' | sed 's/"tag_name": "//' | sed 's/",//' | sed 's/ //g')
+download_url="https://github.com/$repo/releases/download/$tag_name/$release_file_name"
 
-curl -sfL "https://github.com/$repo/releases/download/$tag_name/$release_file_name" --output bake.tar.gz
+curl -fL $download_url --output bake.tar.gz
 echo "download compeleted!"
 
 echo "extracting bake.tar.gz"
