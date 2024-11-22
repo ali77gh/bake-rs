@@ -39,7 +39,7 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
 ### Linux, Mac, WSL and Docker:
 Single command installation:
 ```bash
-curl -sfL https://raw.githubusercontent.com/ali77gh/bake-rs/master/install.sh | sudo bash -
+curl -sfL https://raw.githubusercontent.com/ali77gh/bake-rs/stable/install.sh | sudo bash -
 ```
 
 ### Windows:

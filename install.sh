@@ -26,22 +26,31 @@ api_url="https://api.github.com/repos/$repo/releases/latest"
 tag_name=$(curl --silent $api_url | grep '"tag_name"' | sed 's/"tag_name": "//' | sed 's/",//' | sed 's/ //g')
 download_url="https://github.com/$repo/releases/download/$tag_name/$release_file_name"
 
-curl -fL $download_url --output bake.tar.gz
+echo ""
+echo "--- installing bake version: '$tag_name' on platform: '$platform' to path: '$install_path' ---"
+echo ""
+
+echo "downloading from: '$download_url'"
+
+curl -sfL $download_url --output bake.tar.gz
 echo "download compeleted!"
 
+echo ""
 echo "extracting bake.tar.gz"
 tar -xvzf bake.tar.gz bake
 echo "bake.tar.gz extracted!"
 
+echo ""
 echo "moveing bake to $install_path"
 mv bake "$install_path"
 echo "bake is moved to $install_path"
 
+echo ""
 echo "removing bake.tar.gz"
 rm bake.tar.gz
 echo "bake.tar.gz is removed!"
 
+echo ""
 echo "bake installed successfully"
-
-echo "running: bake --version"
+echo "running: 'bake --version'"
 bake --version
