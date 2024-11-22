@@ -17,6 +17,8 @@ Bake can also help users install dependencies and setup environment variables. F
 
 You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
 
+<img src="screenshot.jpg" width=600/>
+
 ## Table of content
 
 - [Bake-rs](#bake-rs)
@@ -64,14 +66,17 @@ tasks:
 
 ### Usage
 
+See list of tasks:
 ```sh
-$ bake --show
+$ bake --show # or --list
  Tasks: 
 
  ⚙  1  clean (this task removes what you build)
 
  ⚙  2  hello (this task says hello)
 ```
+
+Run specific task:
 
 ```sh
 $ bake hello
@@ -81,7 +86,14 @@ hello from bake
   🛈 Verbose : Task 'hello' finished successfully. time: 2ms
 ```
 
-Note: you will see same result by running 'bake 1'
+Note: you can also run task by index like 'bake 1'
+
+Start interactive CLI (see screen shot):
+
+```sh
+bake
+```
+This will run bake in loop
 
 ## Dependencies
 
