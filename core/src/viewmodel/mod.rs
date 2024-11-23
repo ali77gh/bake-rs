@@ -85,7 +85,7 @@ impl BakeViewModel {
         self.dependencies.values().collect()
     }
 
-    /// Same as [install_dependencies] but in loop
+    /// Same as [install_dependency] but in loop
     /// It will stop iteration on error
     pub fn install_dependencies(&self, names: &[String]) -> Result<(), String> {
         for name in names {
@@ -97,13 +97,6 @@ impl BakeViewModel {
     /// this installs dependencies and will skip if it's already installed
     pub fn install_dependency(&self, name: &str) -> Result<(), String> {
         if let Some(dependency) = self.get_dependency(name) {
-            // auto yes if can't get user input
-            if let Some(false) = self.caps.ask_user_yes_no(
-                format!("'{}' is not installed, do you want to install it", name).as_str(),
-            ) {
-                return Err(format!("cancel installation {}", name));
-            }
-
             dependency.try_install(self)
         } else {
             Err(format!("dependency {} not found", name))
