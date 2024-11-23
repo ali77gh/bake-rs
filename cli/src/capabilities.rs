@@ -22,6 +22,11 @@ impl Capabilities for CLICapabilities {
     }
 
     fn execute(&self, command: &str) -> bool {
+        self.message(Message::bake_state(format!(
+            "running command => '{}'\n",
+            command
+        )));
+
         let result = Command::new(SHELL)
             .arg(SWITCH)
             .arg(command)

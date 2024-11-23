@@ -88,6 +88,17 @@ impl DependencyViewModel {
             return Ok(());
         }
 
+        // auto yes if can't get user input
+        if let Some(false) = self.capabilities.ask_user_yes_no(
+            format!(
+                "'{}' is not installed, do you want to install it",
+                self.name()
+            )
+            .as_str(),
+        ) {
+            return Err(format!("cancel installation {}", self.name()));
+        }
+
         // *THIS IS RECURSIVE*
         // install dependencies of dependency first
         bake_view_model.install_dependencies(self.dependencies())?;
