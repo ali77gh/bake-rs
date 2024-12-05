@@ -215,8 +215,7 @@ You can also specify simple validation for your env that checks value before run
 
 1. number (float or integer)
 1. integer
-1. bool
-1. variants(variation1,variation2,variation3,...)
+1. variants(variation1|variation2|variation3,...)
 
 ```yaml
 tasks:
