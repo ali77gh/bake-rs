@@ -144,7 +144,7 @@ You can also specify different commands or links for installing on different pla
 
 
 Note: by default bake will ask yes/no question before start installing, 
-but by passing '--non--interactive' switch bake will not wait for stdin and will start installing dependency. 
+but by passing '--non-interactive' switch bake will not wait for stdin and will start installing dependency. 
 
 ```yaml
 dependencies:
@@ -243,7 +243,7 @@ tasks:
 ```
 
 Note: by default bake will ask for env on cli if it's not set, 
-but by passing '--non--interactive' switch bake will not wait for stdin and will raise an error. 
+but by passing '--non-interactive' switch bake will not wait for stdin and will raise an error. 
 
 ## Plugin system
 

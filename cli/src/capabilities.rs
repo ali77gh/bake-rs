@@ -101,16 +101,20 @@ impl Capabilities for CLICapabilities {
     }
 
     fn ask_user(&self, question: &str) -> Option<String> {
-        rustyline::Editor::<()>::new()
-            .readline(
-                format!(
-                    " {}: {}? ",
-                    " 🯄 Question ".on_bright_yellow().black(),
-                    question.bright_yellow()
+        if self.non_interactive {
+            None
+        } else {
+            rustyline::Editor::<()>::new()
+                .readline(
+                    format!(
+                        " {}: {}? ",
+                        " 🯄 Question ".on_bright_yellow().black(),
+                        question.bright_yellow()
+                    )
+                    .as_str(),
                 )
-                .as_str(),
-            )
-            .ok()
+                .ok()
+        }
     }
 
     fn set_env(&self, name: &str, value: &str) {
