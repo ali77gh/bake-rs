@@ -17,7 +17,7 @@ use crate::{
     util::ordered_map::OrderedMap,
 };
 
-const BAKE_FILE_NAME: &str = "bakefile.yaml";
+pub const BAKE_FILE_NAME: &str = "bakefile.yaml";
 
 pub struct BakeViewModel {
     plugins: HashMap<String, BakeViewModel>,
