@@ -29,6 +29,14 @@ jobs:
             runs-on: macOS-latest
             target: x86_64-apple-darwin
 
+          - os-name: Linux-arm
+            runs-on: ubuntu-20.04
+            target: aarch64-unknown-linux-musl
+
+          - os-name: macOS-arm
+            runs-on: macOS-latest
+            target: aarch64-apple-darwin
+
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - name: Checkout
@@ -46,4 +54,4 @@ jobs:
           executable-name: bake
           target: ${{ matrix.platform.target }}
           release-tag-prefix: "" # default is "v"
-          changes-file: "Changes.md" # can not be deactiveted
+          changes-file: "Changes.md" # can not be deactivated
