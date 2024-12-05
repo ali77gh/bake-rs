@@ -44,8 +44,6 @@ echo ""
 
 echo "downloading from: '$download_url'"
 
-exit 1
-
 curl -sfL $download_url --output bake.tar.gz
 echo "download completed!"
 
