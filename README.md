@@ -32,6 +32,7 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
     - [Run other tasks from a task](#run-other-tasks-from-a-task)
   - [Platform specific commands](#platform-specific-commands)
   - [Environment variables](#environment-variables)
+  - [Working directory](#working-directory)
   - [Plugin system](#plugin-system)
   - [Stars](#stars)
 
@@ -243,6 +244,22 @@ tasks:
 
 Note: by default bake will ask for env on cli if it's not set, 
 but by passing '--non-interactive' switch bake will not wait for stdin and will raise an error. 
+
+## Working directory
+
+You can setup working directory of a task:
+
+```yaml
+tasks:
+  - name: my_task
+    commands:
+      - "touch yoho"
+    working_directory: sub_directory 
+```
+
+This task will make "./sub_directory/yoho" file
+
+You can also pass absolute path like: "/home/ali/Music" if you want.
 
 ## Plugin system
 
