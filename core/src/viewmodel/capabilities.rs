@@ -13,12 +13,12 @@ pub trait Capabilities {
     ///     stdout to [Message::normal]
     ///     stderr to [Message::error]
     ///     stdin using [Capabilities::ask_user]
-    fn execute(&self, command: &str) -> bool;
+    fn execute(&self, command: &str, working_directory: Option<&str>) -> bool;
 
     /// doing [Capabilities::execute] in loop and exit on false
-    fn execute_all(&self, commands: &[&str]) -> bool {
+    fn execute_all(&self, commands: &[&str], working_directory: Option<&str>) -> bool {
         for cmd in commands {
-            if !self.execute(cmd) {
+            if !self.execute(cmd, working_directory) {
                 return false;
             }
         }

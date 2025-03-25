@@ -122,7 +122,8 @@ impl BakeViewModel {
     pub fn run_command(&self, command: &Command) -> Result<(), String> {
         match command {
             Command::ShellCommand(cmd) => {
-                if self.caps.execute(cmd) {
+                // TODO use case (don't pass none)
+                if self.caps.execute(cmd, None) {
                     Ok(())
                 } else {
                     Err(format!("Error while running {}", cmd))
@@ -204,7 +205,7 @@ tasks:
             )
         }
 
-        fn execute(&self, _: &str) -> bool {
+        fn execute(&self, _: &str, _: Option<&str>) -> bool {
             Message::normal("done");
             true
         }

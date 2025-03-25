@@ -1,6 +1,7 @@
 use colored::Colorize;
 use core::viewmodel::capabilities::Capabilities;
 use core::viewmodel::message::{Message, MessageType};
+use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
@@ -21,15 +22,22 @@ impl Capabilities for CLICapabilities {
         std::fs::read_to_string(file_name).ok()
     }
 
-    fn execute(&self, command: &str) -> bool {
+    fn execute(&self, command: &str, working_directory: Option<&str>) -> bool {
         self.message(Message::bake_state(format!(
             "running command => '{}'\n",
             command
         )));
 
+        let cwd = if let Some(path) = working_directory {
+            fs::canonicalize(path).unwrap()
+        } else {
+            fs::canonicalize(".").unwrap()
+        };
+
         let result = Command::new(SHELL)
             .arg(SWITCH)
             .arg(command)
+            .current_dir(cwd)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()
