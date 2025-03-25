@@ -119,11 +119,14 @@ impl BakeViewModel {
     }
 
     /// command can be Shell or Function call
-    pub fn run_command(&self, command: &Command) -> Result<(), String> {
+    pub fn run_command(
+        &self,
+        command: &Command,
+        working_directory: Option<&str>,
+    ) -> Result<(), String> {
         match command {
             Command::ShellCommand(cmd) => {
-                // TODO use case (don't pass none)
-                if self.caps.execute(cmd, None) {
+                if self.caps.execute(cmd, working_directory) {
                     Ok(())
                 } else {
                     Err(format!("Error while running {}", cmd))
@@ -153,9 +156,13 @@ impl BakeViewModel {
 
     /// Runs [run_command] in loop
     /// stops iteration on error
-    pub fn run_commands(&self, commands: &[Command]) -> Result<(), String> {
+    pub fn run_commands(
+        &self,
+        commands: &[Command],
+        working_directory: Option<&str>,
+    ) -> Result<(), String> {
         for command in commands {
-            self.run_command(command)?;
+            self.run_command(command, working_directory)?;
         }
         Ok(())
     }

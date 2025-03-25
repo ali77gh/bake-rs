@@ -11,6 +11,7 @@ pub struct Task {
     help_msg: Option<String>,
     dependencies: Option<Vec<String>>,
     envs: Option<Vec<Param>>,
+    working_directory: Option<String>,
 
     commands: Option<Vec<String>>,
     commands_linux: Option<Vec<String>>,
@@ -26,6 +27,7 @@ impl Task {
         help_msg: Option<String>,
         dependencies: Option<Vec<String>>,
         envs: Option<Vec<Param>>,
+        working_directory: Option<String>,
         commands: Option<Vec<String>>,
         commands_linux: Option<Vec<String>>,
         commands_windows: Option<Vec<String>>,
@@ -36,6 +38,7 @@ impl Task {
             help_msg,
             dependencies,
             envs,
+            working_directory,
             commands,
             commands_linux,
             commands_windows,
@@ -90,5 +93,9 @@ impl Task {
         } else {
             Err(format!("{} is not supported", get_platform_name()))
         }
+    }
+
+    pub fn working_directory(&self) -> Option<&str> {
+        self.working_directory.as_deref()
     }
 }

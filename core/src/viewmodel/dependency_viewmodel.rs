@@ -61,7 +61,7 @@ impl DependencyViewModel {
             Err(_) => return IsInstalledState::Unknown,
         };
 
-        match bake_view_model.run_commands(&commands) {
+        match bake_view_model.run_commands(&commands, None) {
             Ok(_) => IsInstalledState::Installed,
             Err(_) => IsInstalledState::NotInstalled,
         }
@@ -109,7 +109,7 @@ impl DependencyViewModel {
         )));
 
         if let Ok(commands) = &self.dependency.installation_command() {
-            bake_view_model.run_commands(commands)?;
+            bake_view_model.run_commands(commands, None)?;
 
             //double check installation
             if self.is_installed(bake_view_model) == IsInstalledState::NotInstalled {

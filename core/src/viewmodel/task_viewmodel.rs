@@ -54,8 +54,9 @@ impl TaskViewModel {
         // we should do role back anyway (does not matter if task fails or not)
         // so we can not use '?' operator here
         // we should do this after role back
-        let r =
-            measure_execution_time_result(|| bake_view_model.run_commands(&self.task.commands()?));
+        let r = measure_execution_time_result(|| {
+            bake_view_model.run_commands(&self.task.commands()?, self.task.working_directory())
+        });
 
         env_role_back.role_back(self.capabilities.clone());
 
