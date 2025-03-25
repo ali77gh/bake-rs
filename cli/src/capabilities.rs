@@ -28,10 +28,18 @@ impl Capabilities for CLICapabilities {
             command
         )));
 
-        let cwd = if let Some(path) = working_directory {
-            fs::canonicalize(path).unwrap()
-        } else {
-            fs::canonicalize(".").unwrap()
+        let cwd = working_directory.unwrap_or(".");
+
+        let cwd = match fs::canonicalize(cwd) {
+            Ok(x) => x,
+            Err(e) => {
+                self.message(Message::error(format!(
+                    "{} (working_directory: {})\n",
+                    e,
+                    working_directory.unwrap()
+                )));
+                return false;
+            }
         };
 
         let result = Command::new(SHELL)
