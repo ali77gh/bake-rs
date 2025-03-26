@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::util::platform_specific::{get_platform_name, platform_specific};
 
-use super::{command::Command, param::Param};
+use super::{command::Command, end_handler::EndHandler, param::Param};
 
 /// yaml model
 #[derive(Debug, PartialEq, Deserialize, Clone)]
@@ -17,6 +17,10 @@ pub struct Task {
     commands_linux: Option<Vec<String>>,
     commands_windows: Option<Vec<String>>,
     commands_macos: Option<Vec<String>>,
+
+    on_success: Option<String>,
+    on_error: Option<String>,
+    on_end: Option<String>,
 }
 
 /// factory function and getters
@@ -32,6 +36,9 @@ impl Task {
         commands_linux: Option<Vec<String>>,
         commands_windows: Option<Vec<String>>,
         commands_macos: Option<Vec<String>>,
+        on_success: Option<String>,
+        on_error: Option<String>,
+        on_end: Option<String>,
     ) -> Self {
         Self {
             name,
@@ -43,6 +50,9 @@ impl Task {
             commands_linux,
             commands_windows,
             commands_macos,
+            on_success,
+            on_error,
+            on_end,
         }
     }
 
@@ -93,6 +103,24 @@ impl Task {
         } else {
             Err(format!("{} is not supported", get_platform_name()))
         }
+    }
+
+    pub fn on_success(&self) -> Option<Result<EndHandler, String>> {
+        self.on_success
+            .as_ref()
+            .map(|value| EndHandler::try_from(value.as_str()))
+    }
+
+    pub fn on_error(&self) -> Option<Result<EndHandler, String>> {
+        self.on_error
+            .as_ref()
+            .map(|value| EndHandler::try_from(value.as_str()))
+    }
+
+    pub fn on_end(&self) -> Option<Result<EndHandler, String>> {
+        self.on_end
+            .as_ref()
+            .map(|value| EndHandler::try_from(value.as_str()))
     }
 
     pub fn working_directory(&self) -> Option<&str> {

@@ -1,7 +1,7 @@
 use super::function_call::FunctionCall;
 
 #[derive(PartialEq, Debug)]
-enum EndHandler {
+pub enum EndHandler {
     Restart,
     Retry(u32),
     FunctionCall(FunctionCall),
