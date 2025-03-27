@@ -64,7 +64,6 @@ impl TaskViewModel {
 
         env_role_back.role_back(self.capabilities.clone());
 
-        // TODO on_end
         if skip_end_handler {
             let (_, duration) = r?;
             self.print_time(duration);
@@ -72,16 +71,36 @@ impl TaskViewModel {
             // here after doing role back we check the result
             match (r, self.task.on_success(), self.task.on_error()) {
                 (Ok((_, d)), None, _) => {
+                    // success but no on_success
                     self.print_time(d);
+                    if let Some(eh) = self.task.on_end() {
+                        self.handle_end(bake_view_model, eh?);
+                    }
                 }
-                (Err(e), _, None) => return Err(e),
+                (Err(e), _, None) => {
+                    // error but no on_error
+                    if let Some(eh) = self.task.on_end() {
+                        self.print_error(&e);
+                        self.handle_end(bake_view_model, eh?);
+                    } else {
+                        return Err(e);
+                    }
+                }
                 (Ok((_, d)), Some(eh), _) => {
+                    // success with on_success
                     self.print_time(d);
                     self.handle_end(bake_view_model, eh?);
+                    if let Some(eh) = self.task.on_end() {
+                        self.handle_end(bake_view_model, eh?);
+                    }
                 }
                 (Err(e), _, Some(eh)) => {
+                    // error with on_error
                     self.print_error(&e);
                     self.handle_end(bake_view_model, eh?);
+                    if let Some(eh) = self.task.on_end() {
+                        self.handle_end(bake_view_model, eh?);
+                    }
                 }
             }
         }
