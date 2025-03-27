@@ -64,6 +64,7 @@ impl TaskViewModel {
 
         env_role_back.role_back(self.capabilities.clone());
 
+        // TODO on_end
         if skip_end_handler {
             let (_, duration) = r?;
             self.print_time(duration);
@@ -119,9 +120,11 @@ impl TaskViewModel {
             EndHandler::Retry(retries) => {
                 for i in 0..retries {
                     self.capabilities.message(Message::bake_state(format!(
-                        "retrying for {}th time (retry limit is '{}')",
-                        i, retries
-                    ))); // TODO write a better nth function
+                        "retrying task '{}' ({}/{})",
+                        self.task.name(),
+                        i,
+                        retries
+                    )));
                     let _ = self.run(bake_view_model, true);
                 }
             }
