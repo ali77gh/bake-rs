@@ -1,7 +1,12 @@
 use std::{rc::Rc, time::Duration};
 
 use crate::{
-    model::{command::Command, end_handler::EndHandler, param::Param, task::Task},
+    model::{
+        command::Command,
+        end_handler::{EndHandler, EndHandlerEvent},
+        param::Param,
+        task::Task,
+    },
     util::{measure_execution_time::measure_execution_time_result, ordered_map::OrderedMap},
 };
 
@@ -74,14 +79,14 @@ impl TaskViewModel {
                     // success but no on_success
                     self.print_time(d);
                     if let Some(eh) = self.task.on_end() {
-                        self.handle_end(bake_view_model, eh?);
+                        self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnEnd);
                     }
                 }
                 (Err(e), _, None) => {
                     // error but no on_error
                     if let Some(eh) = self.task.on_end() {
                         self.print_error(&e);
-                        self.handle_end(bake_view_model, eh?);
+                        self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnEnd);
                     } else {
                         return Err(e);
                     }
@@ -89,17 +94,17 @@ impl TaskViewModel {
                 (Ok((_, d)), Some(eh), _) => {
                     // success with on_success
                     self.print_time(d);
-                    self.handle_end(bake_view_model, eh?);
+                    self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnSuccess);
                     if let Some(eh) = self.task.on_end() {
-                        self.handle_end(bake_view_model, eh?);
+                        self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnEnd);
                     }
                 }
                 (Err(e), _, Some(eh)) => {
                     // error with on_error
                     self.print_error(&e);
-                    self.handle_end(bake_view_model, eh?);
+                    self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnError);
                     if let Some(eh) = self.task.on_end() {
-                        self.handle_end(bake_view_model, eh?);
+                        self.handle_end(bake_view_model, eh?, EndHandlerEvent::OnEnd);
                     }
                 }
             }
@@ -124,14 +129,20 @@ impl TaskViewModel {
         )));
     }
 
-    fn handle_end(&self, bake_view_model: &BakeViewModel, end_handler: EndHandler) {
+    fn handle_end(
+        &self,
+        bake_view_model: &BakeViewModel,
+        end_handler: EndHandler,
+        event: EndHandlerEvent,
+    ) {
         match end_handler {
             EndHandler::Restart => {
                 // I don't like to do recursion here because it will stack overflow at some point and fail
                 loop {
                     self.capabilities.message(Message::bake_state(format!(
-                        "restarting task '{}'\n",
-                        self.name()
+                        "task '{}' {}: restarting\n",
+                        self.name(),
+                        event,
                     )));
                     let _ = self.run(bake_view_model, true);
                 }
@@ -139,8 +150,9 @@ impl TaskViewModel {
             EndHandler::Retry(retries) => {
                 for i in 0..retries {
                     self.capabilities.message(Message::bake_state(format!(
-                        "retrying task '{}' ({}/{})",
+                        "task '{}' {}: retrying ({}/{})",
                         self.task.name(),
+                        event,
                         i,
                         retries
                     )));
@@ -149,7 +161,9 @@ impl TaskViewModel {
             }
             EndHandler::FunctionCall(function_call) => {
                 self.capabilities.message(Message::bake_state(format!(
-                    "on_error: '{}'\n",
+                    "task '{}' {}: calls function: '{}'\n",
+                    self.name(),
+                    event,
                     function_call
                 )));
                 let _ = bake_view_model.run_command(

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::function_call::FunctionCall;
 
 #[derive(PartialEq, Debug)]
@@ -5,6 +7,22 @@ pub enum EndHandler {
     Restart,
     Retry(u32),
     FunctionCall(FunctionCall),
+}
+
+pub enum EndHandlerEvent {
+    OnSuccess,
+    OnError,
+    OnEnd,
+}
+
+impl Display for EndHandlerEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EndHandlerEvent::OnSuccess => write!(f, "on_success"),
+            EndHandlerEvent::OnError => write!(f, "on_error"),
+            EndHandlerEvent::OnEnd => write!(f, "on_end"),
+        }
+    }
 }
 
 impl TryFrom<&str> for EndHandler {
