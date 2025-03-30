@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::util::platform_specific::{get_platform_name, platform_specific};
 
-use super::{command::Command, end_handler::EndHandler, param::Param};
+use super::{command::Command, function_call::FunctionCall, param::Param};
 
 /// yaml model
 #[derive(Debug, PartialEq, Deserialize, Clone)]
@@ -105,22 +105,22 @@ impl Task {
         }
     }
 
-    pub fn on_success(&self) -> Option<Result<EndHandler, String>> {
+    pub fn on_success(&self) -> Option<Result<FunctionCall, String>> {
         self.on_success
             .as_ref()
-            .map(|value| EndHandler::try_from(value.as_str()))
+            .map(|value| FunctionCall::try_from(value.as_str()))
     }
 
-    pub fn on_error(&self) -> Option<Result<EndHandler, String>> {
+    pub fn on_error(&self) -> Option<Result<FunctionCall, String>> {
         self.on_error
             .as_ref()
-            .map(|value| EndHandler::try_from(value.as_str()))
+            .map(|value| FunctionCall::try_from(value.as_str()))
     }
 
-    pub fn on_end(&self) -> Option<Result<EndHandler, String>> {
+    pub fn on_end(&self) -> Option<Result<FunctionCall, String>> {
         self.on_end
             .as_ref()
-            .map(|value| EndHandler::try_from(value.as_str()))
+            .map(|value| FunctionCall::try_from(value.as_str()))
     }
 
     pub fn working_directory(&self) -> Option<&str> {

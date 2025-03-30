@@ -106,7 +106,7 @@ impl BakeViewModel {
     /// takes a taskName or taskIndex and tries to run task
     pub fn run_task(&self, name: &str) -> Result<(), String> {
         if let Some(task) = self.get_task(name) {
-            task.run(self, false)
+            task.run(self)
         } else {
             let index = name
                 .parse::<usize>()
