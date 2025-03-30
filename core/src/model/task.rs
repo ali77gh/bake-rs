@@ -21,6 +21,8 @@ pub struct Task {
     on_success: Option<String>,
     on_error: Option<String>,
     on_end: Option<String>,
+
+    keep_alive: Option<bool>,
 }
 
 /// factory function and getters
@@ -39,6 +41,7 @@ impl Task {
         on_success: Option<String>,
         on_error: Option<String>,
         on_end: Option<String>,
+        keep_alive: Option<bool>,
     ) -> Self {
         Self {
             name,
@@ -53,6 +56,7 @@ impl Task {
             on_success,
             on_error,
             on_end,
+            keep_alive,
         }
     }
 
@@ -125,5 +129,13 @@ impl Task {
 
     pub fn working_directory(&self) -> Option<&str> {
         self.working_directory.as_deref()
+    }
+
+    pub fn keep_alive(&self) -> bool {
+        match self.keep_alive {
+            Some(false) => false,
+            Some(true) => true,
+            None => false,
+        }
     }
 }
