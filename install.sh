@@ -12,8 +12,8 @@ arch=$(uname -m)
 case $arch in
 amd64) arch="x86_64" ;;
 x86_64) arch="x86_64" ;;
-aarch64) arch="arm" ;;
-arm64) arch="arm" ;; # This is for the macOS M1 ARM chips
+aarch64) arch="arm64" ;;
+arm64) arch="arm64" ;; # This is for the macOS M1 ARM chips
 *)
   echo "The system architecture (${arch}) is not yet supported by this installation script."
   exit 1
