@@ -30,7 +30,7 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
     - [Usage](#usage)
   - [End event handlers](#end-event-handlers)
     - [Handler syntax :](#handler-syntax-)
-    - [Events types:](#events-types)
+    - [Events names:](#events-names)
     - [Example:](#example)
   - [Dependencies](#dependencies)
     - [Run other tasks from a task](#run-other-tasks-from-a-task)
@@ -104,47 +104,27 @@ This will run bake in loop
 
 ### Handler syntax :
 ```
-handler: (restart | retry(n) | @namespace.function)
-
-  restart: runs task in a loop when that event happens
-  retry(n): runs task in a loop for n times
-  @namespace.task: runs another task when event happens
+<EVENT_NAME>: <FUNCTION_CALL>
 ```
 
-### Events types:
+### Events names:
   1. on_success: runs if task ends with zero code
   2. on_error: runs if task ends with non-zero code
   3. on_end: runs anyway (runs after on_success and on_error)
 
 ### Example:
 
-This runs task over and over in a loop without considering exit code
+This script checks if 'build' directory exist and if it's exist it runs 'another_task1' if it's not exist it runs another_task2, and after that it runs another_task3 in ether ways.
 ```
 tasks:
   - name: task_name
     commands: 
-        - rm target
-    on_end: restart
+        - ls build
+    on_success: @this.another_task1
+    on_error: @this.another_task2
+    on_end: @this.another_task3
 ```
 
-This will retry running task 4 times
-```
-tasks:
-  - name: task_name
-    commands: 
-        - wget http://something.com/download/bake
-    on_error: retry(4)
-```
-
-This will restart on success (keep_alive) and try something else on error
-```
-tasks:
-  - name: task_name
-    commands: 
-        - apt install nginx
-    on_success: restart
-    on_error: @this.other_task
-```
 
 ## Dependencies
 
