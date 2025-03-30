@@ -32,6 +32,8 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
     - [Handler syntax :](#handler-syntax-)
     - [Events names:](#events-names)
     - [Example:](#example)
+  - [Keep alive](#keep-alive)
+    - [Example](#example-1)
   - [Dependencies](#dependencies)
     - [Run other tasks from a task](#run-other-tasks-from-a-task)
   - [Platform specific commands](#platform-specific-commands)
@@ -115,7 +117,7 @@ This will run bake in loop
 ### Example:
 
 This script checks if 'build' directory exist and if it's exist it runs 'another_task1' if it's not exist it runs another_task2, and after that it runs another_task3 in ether ways.
-```
+```yaml
 tasks:
   - name: task_name
     commands: 
@@ -123,6 +125,24 @@ tasks:
     on_success: @this.another_task1
     on_error: @this.another_task2
     on_end: @this.another_task3
+```
+
+> [!WARNING]  
+> DO NOT recursive call same function (bake will panic for stack overflow at some point) use [keep_alive](#keep-alive) instead.
+
+## Keep alive
+
+This option will run your task in a loop without considering exit-code
+
+Note: default is false
+
+### Example
+```yaml
+tasks:
+  - name: task_name
+    commands: 
+        - npm start
+    keep_alive: true
 ```
 
 
