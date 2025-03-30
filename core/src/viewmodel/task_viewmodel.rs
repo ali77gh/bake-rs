@@ -37,11 +37,34 @@ impl TaskViewModel {
         map
     }
 
+    pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+        if !self.task.keep_alive() {
+            self.inner_run(bake_view_model)
+        } else {
+            loop {
+                let result = self.inner_run(bake_view_model);
+                const RESTARTING_TEXT: &str = "restarting because of the keep_alive:true";
+                match result {
+                    Ok(_) => self.capabilities.message(Message::bake_state(format!(
+                        "task '{}' done, {}\n",
+                        self.name(),
+                        RESTARTING_TEXT
+                    ))),
+                    Err(e) => {
+                        self.capabilities.message(Message::error(format!("{e}, ")));
+                        self.capabilities
+                            .message(Message::bake_state(format!("{}\n", RESTARTING_TEXT)));
+                    }
+                }
+            }
+        }
+    }
+
     /// install dependencies of task
     /// env checks
     /// run commands
     /// and show some messages including task time
-    pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+    fn inner_run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
         // install dependencies of task
         // *this is recursive*
         bake_view_model.install_dependencies(self.dependencies())?;
