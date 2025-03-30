@@ -46,6 +46,10 @@ impl TryFrom<&str> for FunctionCall {
     fn try_from(value: &str) -> Result<Self, String> {
         let str = value.trim();
 
+        if !str.starts_with('@') {
+            return Err("syntax error: function call should starts with @".to_string());
+        }
+
         // Safety input string at
         let str = &str[1..]; // pop '@' from begin
         let binding = str.split(' ').collect::<Vec<&str>>();
@@ -114,6 +118,11 @@ impl std::fmt::Display for FunctionCall {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn not_starts_with_at_sign() {
+        assert!(FunctionCall::try_from("this.something").is_err());
+    }
 
     #[test]
     fn valid() {
