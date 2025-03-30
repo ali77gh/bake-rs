@@ -53,5 +53,4 @@ jobs:
         with:
           executable-name: bake
           target: ${{ matrix.platform.target }}
-          release-tag-prefix: "" # default is "v"
           changes-file: "Changes.md" # can not be deactivated
