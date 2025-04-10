@@ -122,9 +122,9 @@ tasks:
   - name: task_name
     commands: 
         - ls build
-    on_success: @this.another_task1
-    on_error: @this.another_task2
-    on_end: @this.another_task3
+    on_success: "@this.another_task1"
+    on_error: "@this.another_task2"
+    on_end: "@this.another_task3"
 ```
 
 > [!WARNING]  
@@ -208,6 +208,9 @@ dependencies:
 ### Run other tasks from a task
 
 For running other task from your task you need to put a '@' at the beginning of your command (so the parser will know it's a Bake command and not a system binary)
+
+> [!WARNING] 
+> '@' syntax should always be used inside double quotes.
 
 ```yaml
 tasks:
