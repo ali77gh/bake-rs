@@ -178,4 +178,17 @@ impl TaskViewModel {
     pub fn params(&self) -> &[Param] {
         self.task.envs()
     }
+
+    /// list of commands of this task
+    pub fn commands(&self) -> Result<Vec<Command>, String> {
+        self.task.commands()
+    }
+
+    pub fn working_directory(&self) -> Option<&str> {
+        self.task.working_directory()
+    }
+
+    pub fn keep_alive(&self) -> bool {
+        self.task.keep_alive()
+    }
 }

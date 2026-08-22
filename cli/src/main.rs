@@ -2,6 +2,7 @@ mod arg_parser;
 mod capabilities;
 mod help;
 mod repl;
+mod serve;
 mod show_tasks;
 
 use core::util::update::update;
@@ -42,6 +43,7 @@ fn main() {
         }
         ParsedArgs::Version => {} // already printed
         ParsedArgs::Update => update(&CLICapabilities::default()),
+        ParsedArgs::Serve(port) => serve::start_server(port),
         ParsedArgs::Help => show_help(),
         ParsedArgs::Nothing => start_repl(),
     }

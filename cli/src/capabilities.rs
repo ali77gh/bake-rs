@@ -147,10 +147,10 @@ impl Capabilities for CLICapabilities {
 }
 
 #[cfg(target_os = "windows")]
-const SHELL: &str = "cmd";
+pub(crate) const SHELL: &str = "cmd";
 #[cfg(target_os = "windows")]
-const SWITCH: &str = "/C";
+pub(crate) const SWITCH: &str = "/C";
 #[cfg(not(target_os = "windows"))]
-const SHELL: &str = "sh";
+pub(crate) const SHELL: &str = "sh";
 #[cfg(not(target_os = "windows"))]
-const SWITCH: &str = "-c";
+pub(crate) const SWITCH: &str = "-c";

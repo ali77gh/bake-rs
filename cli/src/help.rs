@@ -27,4 +27,8 @@ pub fn show_help() {
         "    {} to run command with name or index (yes to all questions and error if env not set, you can also use -ni)",
         "bake <COMMAND_NAME> --non-interactive".bright_yellow()
     );
+    println!(
+        "    {} to start web app and json api (default port is 8000)\n      GET / -> list of tasks\n      POST /{{taskName}} -> run task and stream output",
+        "bake serve --port 8080".bright_yellow()
+    );
 }

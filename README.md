@@ -1,6 +1,6 @@
 # Bake-rs
 
-<img src="./logo.png" width=600/> 
+<img src="./logo.png" width=600/>
 
 [![OS - Linux](https://img.shields.io/badge/OS-Linux-blue?logo=linux&logoColor=white)](https://www.linux.org/ "Go to Linux homepage")
 [![OS - macOS](https://img.shields.io/badge/OS-macOS-blue?logo=apple&logoColor=white)](https://www.apple.com/macos/ "Go to Apple homepage")
@@ -40,18 +40,21 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
   - [Environment variables](#environment-variables)
   - [Working directory](#working-directory)
   - [Plugin system](#plugin-system)
+  - [Web app and API (serve)](#web-app-and-api-serve)
   - [Stars](#stars)
-
 
 ## Installation
 
 ### Linux, Mac, WSL and Docker:
+
 Single command installation:
+
 ```bash
 curl -sfL https://raw.githubusercontent.com/ali77gh/bake-rs/stable/install.sh | sudo bash -
 ```
 
 ### Windows:
+
 Download latest release from [here](https://github.com/ali77gh/bake-rs/releases) and copy that where you want and than add installation path to PATH env variable and than you are good to go.
 
 ## Basic
@@ -62,11 +65,11 @@ Make a file named 'bakefile.yaml'
 tasks:
   - name: clean
     help_msg: this task removes what you build
-    commands: [ rm ./build ]
+    commands: [rm ./build]
 
   - name: hello
     help_msg: this task says hello
-    commands: 
+    commands:
       - echo hello world
       - echo hello from Bake
 ```
@@ -74,9 +77,10 @@ tasks:
 ### Usage
 
 See list of tasks:
+
 ```sh
 $ bake --show # or --list
- Tasks: 
+ Tasks:
 
  ⚙  1  clean (this task removes what you build)
 
@@ -100,28 +104,32 @@ Start interactive CLI (see screen shot):
 ```sh
 bake
 ```
+
 This will run bake in loop
 
 ## End event handlers
 
 ### Handler syntax :
+
 ```
 <EVENT_NAME>: <FUNCTION_CALL>
 ```
 
 ### Events names:
-  1. on_success: runs if task ends with zero code
-  2. on_error: runs if task ends with non-zero code
-  3. on_end: runs anyway (runs after on_success and on_error)
+
+1. on_success: runs if task ends with zero code
+2. on_error: runs if task ends with non-zero code
+3. on_end: runs anyway (runs after on_success and on_error)
 
 ### Example:
 
 This script checks if 'build' directory exist and if it's exist it runs 'another_task1' if it's not exist it runs another_task2, and after that it runs another_task3 in ether ways.
+
 ```yaml
 tasks:
   - name: task_name
-    commands: 
-        - ls build
+    commands:
+      - ls build
     on_success: "@this.another_task1"
     on_error: "@this.another_task2"
     on_end: "@this.another_task3"
@@ -137,14 +145,14 @@ This option will run your task in a loop without considering exit-code
 Note: default is false
 
 ### Example
+
 ```yaml
 tasks:
   - name: task_name
-    commands: 
-        - npm start
+    commands:
+      - npm start
     keep_alive: true
 ```
-
 
 ## Dependencies
 
@@ -155,17 +163,17 @@ for example to compile a Rust code-base you need to have 'cargo' installed.
 ```yaml
 dependencies:
   - name: cargo
-    check: [ cargo --version ]
+    check: [cargo --version]
     link: https://www.rust-lang.org/tools/install # install button opens browser and user should manually install it
 
   - name: clippy
-    dependencies: [ cargo ] # dependencies can depend on other dependencies
-    check: [ cargo clippy --version ]
-    commands: [ cargo install clippy ] # install button will automatically install
+    dependencies: [cargo] # dependencies can depend on other dependencies
+    check: [cargo clippy --version]
+    commands: [cargo install clippy] # install button will automatically install
 
   - name: check-file-exist-dependency
-    check: [ ls target ] # you can check if a file or directory exist like this
-    commands: [ cargo build ]
+    check: [ls target] # you can check if a file or directory exist like this
+    commands: [cargo build]
 ```
 
 Now you tasks can depends on dependencies
@@ -173,12 +181,12 @@ Now you tasks can depends on dependencies
 ```yaml
 tasks:
   - name: release
-    dependencies: [ cargo ] 
-    commands: 
-        - cargo build --release
+    dependencies: [cargo]
+    commands:
+      - cargo build --release
 
   - name: check
-    dependencies: [ cargo, clippy ]
+    dependencies: [cargo, clippy]
     commands:
       - cargo check
       - cargo clippy
@@ -193,15 +201,14 @@ so if the exit code is 0 this means dependency is installed or exist but any oth
 
 You can also specify different commands or links for installing on different platforms:
 
-
-Note: by default bake will ask yes/no question before start installing, 
-but by passing '--non-interactive' switch bake will not wait for stdin and will start installing dependency. 
+Note: by default bake will ask yes/no question before start installing,
+but by passing '--non-interactive' switch bake will not wait for stdin and will start installing dependency.
 
 ```yaml
 dependencies:
   - name: wget
-    check: [ wget --version ]
-    commands_linux: [ sudo apt install wget ] # linux only
+    check: [wget --version]
+    commands_linux: [sudo apt install wget] # linux only
     link: https://www.gnu.org/software/wget/ # mac and windows (in this case)
 ```
 
@@ -209,14 +216,14 @@ dependencies:
 
 For running other task from your task you need to put a '@' at the beginning of your command (so the parser will know it's a Bake command and not a system binary)
 
-> [!WARNING] 
+> [!WARNING]
 > '@' syntax should always be used inside double quotes.
 
 ```yaml
 tasks:
   - name: release
-    dependencies: [ rust ]
-    commands: 
+    dependencies: [rust]
+    commands:
       - "@this.check" # here
       - cargo build --release
       - "@this.publish" # here
@@ -241,9 +248,9 @@ Sometimes you need to run different commands on different operating systems:
 tasks:
   - name: clean
     commands: # default (linux and mac in this case)
-        - rm ./target
-    commands_windows: 
-        - del target
+      - rm ./target
+    commands_windows:
+      - del target
 ```
 
 Note: If you run this on a windows system only the windows commands will run but as you did not specify commands_linux and commands_macos if you run this task on Linux or MacOS it will run default commands.
@@ -260,9 +267,9 @@ Note: you can also provide a default value for your env by providing 'default' f
 tasks:
   - name: listen
     envs:
-      - name: PORT 
+      - name: PORT
         default: 80
-    commands: [ nc -l -p $PORT ]
+    commands: [nc -l -p $PORT]
 ```
 
 You can also specify simple validation for your env that checks value before run.
@@ -295,8 +302,8 @@ tasks:
       - "@this.task_with_envs --PORT 80 --build-mode release" # passing args to other task
 ```
 
-Note: by default bake will ask for env on cli if it's not set, 
-but by passing '--non-interactive' switch bake will not wait for stdin and will raise an error. 
+Note: by default bake will ask for env on cli if it's not set,
+but by passing '--non-interactive' switch bake will not wait for stdin and will raise an error.
 
 ## Working directory
 
@@ -307,7 +314,7 @@ tasks:
   - name: my_task
     commands:
       - "touch yoho"
-    working_directory: sub_directory 
+    working_directory: sub_directory
 ```
 
 This task will make "./sub_directory/yoho" file
@@ -333,5 +340,36 @@ tasks:
 
 Note: you can also write your local plugins for your project.
 
+## Web app and API (serve)
+
+Bake can host a web app and a JSON api for your tasks:
+
+```sh
+$ bake serve --port 8080 # default port is 8000
+```
+
+It serves two things on the same port:
+
+1. **Web app**: open `http://localhost:8080` in browser, you will see list of tasks.
+   By clicking on a task you go to `/{taskName}` page where you can fill task envs (as normal html inputs)
+   and click 'Run' to run the task and see output logs live.
+
+2. **JSON API**:
+   - `GET /` returns list of tasks with descriptions, commands and more
+   - `GET /{taskName}` returns single task info
+   - `POST /{taskName}` runs the task and streams std-out/stderr as plain text
+
+Note: browsers get html pages (by `Accept: text/html` header) and other clients (curl, scripts, etc) get json.
+
+Example:
+
+```sh
+$ curl localhost:8080/
+$ curl -X POST "localhost:8080/greet?NAME=ali&COUNT=3"
+```
+
+Params can be passed by query string or form body (`NAME=ali&COUNT=3`).
+
 ## Stars
+
 [![Stargazers over time](https://starchart.cc/ali77gh/bake-rs.svg)](https://starchart.cc/ali77gh/bake-rs)

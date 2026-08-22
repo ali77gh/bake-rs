@@ -1,4 +1,8 @@
 
+## unreleased
+
+- 'bake serve' command: web app + json api for tasks (GET / task list, GET /{taskName} task info, POST /{taskName} run task and stream output)
+
 ## 1.0.0 - 2024-11-1
 
 - Passing param to other tasks
