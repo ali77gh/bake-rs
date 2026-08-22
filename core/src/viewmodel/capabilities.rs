@@ -59,4 +59,11 @@ pub trait Capabilities {
     fn get_env(&self, name: &str) -> Option<String>;
 
     fn remove_env(&self, name: &str);
+
+    /// true when user asked to stop the current task
+    /// checked by keep_alive loop (so killed tasks don't restart)
+    /// example: kill button in 'bake serve' web app
+    fn should_abort(&self) -> bool {
+        false
+    }
 }

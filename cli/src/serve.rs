@@ -1,8 +1,15 @@
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::process::{Command, Stdio};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
+use std::time::{Duration, Instant};
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 
 use colored::Colorize;
 use core::viewmodel::capabilities::Capabilities;
@@ -10,15 +17,96 @@ use core::viewmodel::message::Message;
 use core::viewmodel::task_viewmodel::TaskViewModel;
 use core::viewmodel::BakeViewModel;
 use serde_json::json;
-use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
 use crate::capabilities::{SHELL, SWITCH};
+
+/// a task run in progress (shared between the worker thread and http handlers)
+struct RunEntry {
+    id: u64,
+    name: String,
+    started_at: Instant,
+    abort: AtomicBool,
+    /// pid of the currently running command (process group leader)
+    active_child: Mutex<Option<u32>>,
+}
+
+impl RunEntry {
+    fn aborted(&self) -> bool {
+        self.abort.load(Ordering::SeqCst)
+    }
+
+    fn set_active_pid(&self, pid: Option<u32>) {
+        *self.active_child.lock().unwrap() = pid;
+    }
+
+    fn elapsed_ms(&self) -> u64 {
+        self.started_at.elapsed().as_millis() as u64
+    }
+}
+
+static RUNS: OnceLock<Mutex<Vec<Arc<RunEntry>>>> = OnceLock::new();
+static NEXT_RUN_ID: AtomicU64 = AtomicU64::new(1);
+
+fn runs() -> &'static Mutex<Vec<Arc<RunEntry>>> {
+    RUNS.get_or_init(Mutex::default)
+}
+
+fn next_run_id() -> u64 {
+    NEXT_RUN_ID.fetch_add(1, Ordering::SeqCst)
+}
+
+/// kills the process group of a running task
+/// returns false if there is no such running task
+fn kill_run(id: u64) -> bool {
+    let entry = {
+        let runs = runs().lock().unwrap();
+        match runs.iter().find(|x| x.id == id) {
+            Some(x) => Arc::clone(x),
+            None => return false,
+        }
+    };
+    entry.abort.store(true, Ordering::SeqCst);
+    if let Some(pid) = entry.active_child.lock().unwrap().take() {
+        kill_process_tree(pid);
+    }
+    true
+}
+
+#[cfg(unix)]
+fn kill_process_tree(pid: u32) {
+    // commands are spawned with process_group(0) so -pid kills the whole tree
+    unsafe {
+        libc::kill(-(pid as i32), libc::SIGKILL);
+    }
+}
+
+#[cfg(windows)]
+fn kill_process_tree(pid: u32) {
+    let _ = Command::new("taskkill")
+        .args(["/F", "/T", "/PID"])
+        .arg(pid.to_string())
+        .spawn();
+}
 
 /// [Capabilities] implementation for `bake serve`
 /// instead of printing to stdout it streams every message/command output
 /// into a channel which is consumed by the http response body
 struct ServeCapabilities {
     tx: Sender<Vec<u8>>,
+    /// present while this instance runs a task (None for read only usage)
+    run: Option<Arc<RunEntry>>,
+}
+
+impl ServeCapabilities {
+    fn aborted(&self) -> bool {
+        self.run.as_ref().is_some_and(|r| r.aborted())
+    }
+
+    fn set_active_pid(&self, pid: Option<u32>) {
+        if let Some(run) = &self.run {
+            run.set_active_pid(pid);
+        }
+    }
 }
 
 impl Capabilities for ServeCapabilities {
@@ -27,6 +115,11 @@ impl Capabilities for ServeCapabilities {
     }
 
     fn execute(&self, command: &str, working_directory: Option<&str>) -> bool {
+        if self.aborted() {
+            self.message(Message::warning("abort requested, stopping\n"));
+            return false;
+        }
+
         self.message(Message::bake_state(format!(
             "running command => '{}'\n",
             command
@@ -45,16 +138,19 @@ impl Capabilities for ServeCapabilities {
             }
         };
 
-        let child = Command::new(SHELL)
-            .arg(SWITCH)
+        let mut cmd = Command::new(SHELL);
+        cmd.arg(SWITCH)
             .arg(command)
             .current_dir(cwd)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn();
+            .stderr(Stdio::piped());
 
-        let mut child = match child {
+        // own process group so we can kill the whole tree on abort
+        #[cfg(unix)]
+        cmd.process_group(0);
+
+        let child = match cmd.spawn() {
             Ok(x) => x,
             Err(e) => {
                 self.message(Message::error(format!("can't run '{}': {}\n", command, e)));
@@ -62,7 +158,11 @@ impl Capabilities for ServeCapabilities {
             }
         };
 
+        let pid = child.id();
+        self.set_active_pid(Some(pid));
+
         // stdout is forwarded here, stderr in a separate thread
+        let mut child = child;
         if let Some(stdout) = child.stdout.take() {
             forward_lines(stdout, &self.tx);
         }
@@ -71,10 +171,12 @@ impl Capabilities for ServeCapabilities {
             thread::spawn(move || forward_lines(stderr, &tx));
         }
 
-        match child.wait() {
+        let success = match child.wait() {
             Ok(status) => status.success(),
             Err(_) => false,
-        }
+        };
+        self.set_active_pid(None);
+        success
     }
 
     fn open_link(&self, url: &str) {
@@ -92,6 +194,10 @@ impl Capabilities for ServeCapabilities {
     /// serve mode is non-interactive (inputs come from the request)
     fn input(&self) -> Option<String> {
         None
+    }
+
+    fn should_abort(&self) -> bool {
+        self.aborted()
     }
 
     fn set_env(&self, name: &str, value: &str) {
@@ -117,30 +223,9 @@ fn forward_lines<R: Read>(reader: R, tx: &Sender<Vec<u8>>) {
     }
 }
 
-/// reads streamed chunks and turns them into an http response body
-struct ChannelReader {
-    rx: Receiver<Vec<u8>>,
-    buf: Vec<u8>,
-}
-
-impl Read for ChannelReader {
-    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
-        while self.buf.is_empty() {
-            match self.rx.recv() {
-                Ok(chunk) => self.buf = chunk,
-                Err(_) => return Ok(0), // sender dropped -> end of stream
-            }
-        }
-        let n = out.len().min(self.buf.len());
-        out[..n].copy_from_slice(&self.buf[..n]);
-        self.buf.drain(..n);
-        Ok(n)
-    }
-}
-
 pub fn start_server(port: u16) {
     let addr = format!("127.0.0.1:{port}");
-    let server = match Server::http(&addr) {
+    let listener = match TcpListener::bind(&addr) {
         Ok(x) => x,
         Err(e) => {
             println!("can't start server on {addr}: {e}");
@@ -153,104 +238,302 @@ pub fn start_server(port: u16) {
         port
     );
 
-    for request in server.incoming_requests() {
-        thread::spawn(move || handle_request(request));
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                thread::spawn(move || handle_conn(stream));
+            }
+            Err(e) => println!("bad connection: {e}"),
+        }
     }
 }
 
-type Resp = Response<Box<dyn Read>>;
+/// parsed http request (only what bake needs)
+struct Req {
+    method: String,
+    path: String,
+    query: Option<String>,
+    headers: Vec<(String, String)>,
+    body: Vec<u8>,
+}
 
-fn handle_request(mut request: Request) {
-    let method = request.method().clone();
-    let url = request.url().to_string();
-    let (raw_path, query) = match url.split_once('?') {
-        Some((p, q)) => (p, Some(q)),
-        None => (url.as_str(), None),
-    };
-    let path = if raw_path == "/" {
-        "/".to_string()
-    } else {
-        percent_decode(raw_path.trim_matches('/'), false)
+const MAX_HEAD: usize = 64 * 1024;
+const MAX_BODY: usize = 64 * 1024;
+
+fn handle_conn(mut stream: TcpStream) {
+    // don't hold threads forever on silent connections
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
+
+    let req = match read_request(&mut stream) {
+        Ok(Some(x)) => x,
+        Ok(None) => return,
+        Err(e) => {
+            let body = format!("bad request: {e}");
+            let _ = write_full(&mut stream, 400, "text/plain", &body);
+            return;
+        }
     };
 
-    let mut params = query.map(parse_urlencoded).unwrap_or_default();
-    if method == Method::Post {
-        let mut body = String::new();
-        if request
-            .as_reader()
-            .take(64 * 1024)
-            .read_to_string(&mut body)
-            .is_ok()
-        {
-            params.extend(parse_urlencoded(&body));
+    match route(&req) {
+        Resp::Full(status, content_type, body) => {
+            let _ = write_full(&mut stream, status, content_type, &body);
+        }
+        Resp::Stream { rx, run_id } => {
+            let head = format!(
+                "HTTP/1.1 200 OK\r\nX-Run-Id: {run_id}\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n"
+            );
+            if stream.write_all(head.as_bytes()).is_ok() && write_stream(&mut stream, rx).is_ok() {}
+        }
+    }
+    let _ = stream.flush();
+}
+
+/// reads head (+ body by Content-Length) of a http request
+fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Req>> {
+    let mut buf = Vec::new();
+    let mut chunk = [0u8; 4096];
+    loop {
+        if buf.len() > MAX_HEAD {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "request head too large",
+            ));
+        }
+        let n = stream.read(&mut chunk)?;
+        if n == 0 {
+            return Ok(None); // connection closed before full request
+        }
+        buf.extend_from_slice(&chunk[..n]);
+        if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            return parse_request(stream, &buf[..pos], &buf[pos + 4..]);
+        }
+    }
+}
+
+fn parse_request(
+    stream: &mut TcpStream,
+    head: &[u8],
+    body_start: &[u8],
+) -> std::io::Result<Option<Req>> {
+    let head = String::from_utf8_lossy(head);
+    let mut lines = head.split("\r\n");
+    let request_line = lines.next().unwrap_or_default();
+    let mut parts = request_line.split_whitespace();
+    let method = parts.next().unwrap_or_default().to_uppercase();
+    let target = parts.next().unwrap_or_default().to_string();
+    if method.is_empty() || target.is_empty() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "malformed request line",
+        ));
+    }
+
+    let mut content_length = 0usize;
+    let mut expect_continue = false;
+    let mut headers = Vec::new();
+    for line in lines {
+        if let Some((name, value)) = line.split_once(':') {
+            let name = name.trim().to_string();
+            let value = value.trim().to_string();
+            if name.eq_ignore_ascii_case("content-length") {
+                content_length = value.parse().unwrap_or(0);
+            }
+            if name.eq_ignore_ascii_case("expect") && value.eq_ignore_ascii_case("100-continue") {
+                expect_continue = true;
+            }
+            headers.push((name, value));
         }
     }
 
-    let response = route(&request, &method, &path, params);
-    let _ = request.respond(response);
-}
+    if content_length > MAX_BODY {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "request body too large",
+        ));
+    }
 
-fn route(request: &Request, method: &Method, path: &str, params: Vec<(String, String)>) -> Resp {
-    let html = wants_html(request);
-    let bake = match BakeViewModel::new(probe_caps()) {
-        Ok(x) => x,
-        Err(e) => return response(500, "text/plain", e),
+    // clients like curl wait for this before sending big bodies
+    if expect_continue {
+        stream.write_all(b"HTTP/1.1 100 Continue\r\n\r\n")?;
+        stream.flush()?;
+    }
+
+    let mut body = body_start.to_vec();
+    while body.len() < content_length {
+        let mut chunk = [0u8; 4096];
+        let n = stream.read(&mut chunk)?;
+        if n == 0 {
+            break;
+        }
+        body.extend_from_slice(&chunk[..n]);
+    }
+    body.truncate(content_length);
+
+    let (path_raw, query) = match target.split_once('?') {
+        Some((p, q)) => (p.to_string(), Some(q.to_string())),
+        None => (target, None),
+    };
+    let path = if path_raw == "/" {
+        "/".to_string()
+    } else {
+        percent_decode(path_raw.trim_matches('/'), false)
     };
 
-    match (method, path) {
-        (&Method::Get, "/") => {
+    Ok(Some(Req {
+        method,
+        path,
+        query,
+        headers,
+        body,
+    }))
+}
+
+/// non streaming answer
+fn write_full(
+    stream: &mut TcpStream,
+    status: u16,
+    content_type: &str,
+    body: &str,
+) -> std::io::Result<()> {
+    let head = format!(
+        "HTTP/1.1 {status} {}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        reason(status),
+        body.len()
+    );
+    stream.write_all(head.as_bytes())?;
+    stream.write_all(body.as_bytes())?;
+    stream.flush()
+}
+
+fn reason(status: u16) -> &'static str {
+    match status {
+        200 => "OK",
+        400 => "Bad Request",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        500 => "Internal Server Error",
+        _ => "OK",
+    }
+}
+
+/// writes task output as chunked transfer encoding, live (flush per chunk)
+fn write_stream(stream: &mut TcpStream, rx: Receiver<Vec<u8>>) -> std::io::Result<()> {
+    while let Ok(chunk) = rx.recv() {
+        if chunk.is_empty() {
+            continue;
+        }
+        stream.write_all(format!("{:x}\r\n", chunk.len()).as_bytes())?;
+        stream.write_all(&chunk)?;
+        stream.write_all(b"\r\n")?;
+        stream.flush()?; // push it out immediately so the user sees live logs
+    }
+    stream.write_all(b"0\r\n\r\n")?;
+    stream.flush()
+}
+
+enum Resp {
+    Full(u16, &'static str, String),
+    /// run output streamed live to the client
+    Stream {
+        rx: Receiver<Vec<u8>>,
+        run_id: u64,
+    },
+}
+
+fn route(req: &Req) -> Resp {
+    let html = wants_html(&req.headers);
+    let bake = match BakeViewModel::new(probe_caps()) {
+        Ok(x) => x,
+        Err(e) => return Resp::Full(500, "text/plain", e),
+    };
+
+    match (req.method.as_str(), req.path.as_str()) {
+        ("GET", "/") => {
             if html {
-                response(200, "text/html", index_page(&bake))
+                Resp::Full(200, "text/html", index_page(&bake))
             } else {
                 tasks_json(&bake)
             }
         }
-        (&Method::Get, name) => match bake.get_task(name) {
+        ("GET", "running") => running_json(),
+        ("DELETE", p) => match p
+            .strip_prefix("running/")
+            .and_then(|x| x.parse::<u64>().ok())
+        {
+            Some(id) => {
+                if kill_run(id) {
+                    Resp::Full(200, "text/plain", "killed".to_string())
+                } else {
+                    Resp::Full(404, "text/plain", format!("no running task with id {id}"))
+                }
+            }
+            None => Resp::Full(400, "text/plain", "expected /running/{id}".to_string()),
+        },
+        ("GET", name) => match bake.get_task(name) {
             Some(task) => {
                 if html {
-                    response(200, "text/html", task_page(task))
+                    Resp::Full(200, "text/html", task_page(task))
                 } else {
                     task_json_response(task)
                 }
             }
-            None => response(404, "text/plain", format!("task '{name}' not found")),
+            None => Resp::Full(404, "text/plain", format!("task '{name}' not found")),
         },
-        (&Method::Post, name) => {
+        ("POST", name) => {
             if bake.get_task(name).is_none() {
-                return response(404, "text/plain", format!("task '{name}' not found"));
+                return Resp::Full(404, "text/plain", format!("task '{name}' not found"));
             }
+            // params can come from the query string and/or form body
+            let mut params = req
+                .query
+                .as_deref()
+                .map(parse_urlencoded)
+                .unwrap_or_default();
+            params.extend(parse_urlencoded(&String::from_utf8_lossy(&req.body)));
+            // this entry makes the run visible in GET /running and killable
+            // (created here so its id can be returned in the X-Run-Id header)
+            let entry = Arc::new(RunEntry {
+                id: next_run_id(),
+                name: name.to_string(),
+                started_at: Instant::now(),
+                abort: AtomicBool::new(false),
+                active_child: Mutex::new(None),
+            });
+            runs().lock().unwrap().push(Arc::clone(&entry));
             let (tx, rx) = mpsc::channel::<Vec<u8>>();
             let name = name.to_string();
-            thread::spawn(move || run_task_streaming(name, params, tx));
-            Response::new(
-                StatusCode(200),
-                vec![],
-                Box::new(ChannelReader {
-                    rx,
-                    buf: Vec::new(),
-                }) as Box<dyn Read>,
-                None,
-                None,
-            )
+            let run_id = entry.id;
+            thread::spawn(move || run_task_streaming(name, params, tx, entry));
+            Resp::Stream { rx, run_id }
         }
-        _ => response(405, "text/plain", "method not allowed".to_string()),
+        _ => Resp::Full(405, "text/plain", "method not allowed".to_string()),
     }
 }
 
 /// bakefile view model for read only checks (messages are discarded)
 fn probe_caps() -> Rc<dyn Capabilities> {
     let (tx, _) = mpsc::channel();
-    Rc::new(ServeCapabilities { tx })
+    Rc::new(ServeCapabilities { tx, run: None })
 }
 
 /// runs the task and streams everything (bake messages + command output) to the client
-fn run_task_streaming(task_name: String, params: Vec<(String, String)>, tx: Sender<Vec<u8>>) {
-    let cap: Rc<dyn Capabilities> = Rc::new(ServeCapabilities { tx });
+fn run_task_streaming(
+    task_name: String,
+    params: Vec<(String, String)>,
+    tx: Sender<Vec<u8>>,
+    entry: Arc<RunEntry>,
+) {
+    let serve_cap = Rc::new(ServeCapabilities {
+        tx,
+        run: Some(Arc::clone(&entry)),
+    });
+    let cap: Rc<dyn Capabilities> = serve_cap.clone();
 
     let bake = match BakeViewModel::new(Rc::clone(&cap)) {
         Ok(x) => x,
         Err(e) => {
-            cap.message(Message::error(format!("{e}\n")));
+            serve_cap.message(Message::error(format!("{e}\n")));
+            runs().lock().unwrap().retain(|x| x.id != entry.id);
             return;
         }
     };
@@ -265,15 +548,46 @@ fn run_task_streaming(task_name: String, params: Vec<(String, String)>, tx: Send
         cap.set_env(name, value);
     }
 
-    if let Err(e) = bake.run_task(&task_name) {
-        cap.message(Message::error(format!("{e}\n")));
-        cap.message(Message::error(format!(
-            "Task '{task_name}' failed to run\n"
-        )));
+    serve_cap.message(Message::bake_state(format!("run id: {}\n", entry.id)));
+
+    let result = bake.run_task(&task_name);
+
+    runs().lock().unwrap().retain(|x| x.id != entry.id);
+
+    if let Err(e) = result {
+        if entry.aborted() {
+            serve_cap.message(Message::warning(format!("Task '{task_name}' killed\n")));
+        } else {
+            serve_cap.message(Message::error(format!("{e}\n")));
+            serve_cap.message(Message::error(format!(
+                "Task '{task_name}' failed to run\n"
+            )));
+        }
     }
 }
 
 // ---------- json api ----------
+
+/// list of currently running tasks (GET /running)
+fn running_json() -> Resp {
+    let running: Vec<serde_json::Value> = runs()
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            json!({
+                "id": r.id,
+                "name": r.name,
+                "elapsed_ms": r.elapsed_ms(),
+            })
+        })
+        .collect();
+    response(
+        200,
+        "application/json",
+        serde_json::to_string_pretty(&json!({ "running": running })).unwrap_or_default(),
+    )
+}
 
 fn tasks_json(bake: &BakeViewModel) -> Resp {
     let tasks: Vec<serde_json::Value> = bake.tasks().iter().map(task_json).collect();
@@ -326,11 +640,10 @@ fn command_string(command: &core::model::command::Command) -> String {
 
 // ---------- web app ----------
 
-fn wants_html(request: &Request) -> bool {
-    request
-        .headers()
-        .iter()
-        .any(|h| h.field.equiv("Accept") && h.value.as_str().to_lowercase().contains("text/html"))
+fn wants_html(headers: &[(String, String)]) -> bool {
+    headers.iter().any(|(name, value)| {
+        name.eq_ignore_ascii_case("accept") && value.to_lowercase().contains("text/html")
+    })
 }
 
 fn html_escape(s: &str) -> String {
@@ -349,6 +662,11 @@ label{display:block;margin:.5rem 0;color:#bbb;font-size:.85rem}
 input,button{font-size:1rem;padding:.45rem .7rem;border-radius:6px;border:1px solid #444;background:#1c1c1c;color:#eee;width:100%;box-sizing:border-box;margin-top:.2rem}
 button{background:#ffd54f;color:#000;font-weight:700;border:none;cursor:pointer;margin-top:1rem}
 pre{background:#000;border:1px solid #333;border-radius:8px;padding:1rem;min-height:3rem;white-space:pre-wrap;word-break:break-word;margin-top:1rem;overflow:auto;max-height:70vh}
+h2{margin-top:2rem;font-size:1.05rem;color:#ffd54f}
+li.running{display:flex;align-items:center;gap:.8rem;border-color:#ffd54f}
+li.running .name{flex:0 0 auto}
+.elapsed{color:#9e9e9e;font-size:.85rem;flex:1;text-align:right;margin-left:auto}
+button.kill{background:#e53935;color:#fff;width:auto;margin:0;padding:.25rem .8rem;font-size:.85rem;cursor:pointer}
 ";
 
 fn page(title: &str, content: &str) -> String {
@@ -370,8 +688,35 @@ fn index_page(bake: &BakeViewModel) -> String {
             task.help_msg().map(html_escape).unwrap_or_default(),
         ));
     }
-    page("bake", &format!("<h1>▶ Bake</h1><ul>{items}</ul>"))
+    page(
+        "bake",
+        &format!("<h1>▶ Bake</h1>{RUNNING_WIDGET}<ul>{items}</ul>"),
+    )
 }
+
+/// live list of running tasks with kill buttons
+/// polls GET /running every 2s and kills with DELETE /running/{id}
+const RUNNING_WIDGET: &str = r#"<div id="running"></div>
+<script>
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function killRun(id){fetch('/running/'+id,{method:'DELETE'}).then(refreshRunning);}
+async function refreshRunning(){
+  try{
+    const res=await fetch('/running');
+    if(!res.ok)return;
+    const {running}=await res.json();
+    const el=document.getElementById('running');
+    if(!running.length){el.innerHTML='';return;}
+    el.innerHTML='<h2>Running now</h2><ul>'+running.map(t=>
+      '<li class="running"><a href="/'+esc(t.name)+'">▶ '+esc(t.name)+'</a>'+
+      '<span class="help">running for '+Math.floor(t.elapsed_ms/1000)+'s</span>'+
+      '<span class="elapsed">#'+t.id+'</span>'+
+      '<button class="kill" onclick="killRun('+t.id+')">Kill</button></li>').join('')+'</ul>';
+  }catch(e){}
+}
+refreshRunning();
+setInterval(refreshRunning,2000);
+</script>"#;
 
 fn task_page(task: &TaskViewModel) -> String {
     let mut inputs = String::new();
@@ -389,14 +734,20 @@ fn task_page(task: &TaskViewModel) -> String {
         "<a href=\"/\">← back</a>\
 <h1>{}</h1><p class=\"help\">{help}</p>\
 <form id=\"f\">{inputs}<button>Run</button></form>\
+<button id=\"kill\" class=\"kill\" hidden>Kill</button>\
 <pre id=\"out\" hidden></pre>\
+{RUNNING_WIDGET}
 <script>
 const out=document.getElementById('out');
+const killBtn=document.getElementById('kill');
+let runId=null;
 document.getElementById('f').onsubmit=async e=>{{
   e.preventDefault();
   out.hidden=false; out.textContent='';
   const body=new URLSearchParams([...new FormData(e.target)].filter(([,v])=>v!==''));
   const res=await fetch(location.pathname,{{method:'POST',body}});
+  runId=res.headers.get('X-Run-Id');
+  killBtn.hidden=false;
   const reader=res.body.getReader(); const dec=new TextDecoder();
   for(;;){{
     const {{done,value}}=await reader.read();
@@ -404,7 +755,9 @@ document.getElementById('f').onsubmit=async e=>{{
     out.textContent+=dec.decode(value,{{stream:true}});
     out.scrollTop=out.scrollHeight;
   }}
+  killBtn.hidden=true; runId=null;
 }};
+killBtn.onclick=()=>{{ if(runId!=null) fetch('/running/'+runId,{{method:'DELETE'}}); }};
 </script>",
         html_escape(task.name()),
     );
@@ -413,20 +766,8 @@ document.getElementById('f').onsubmit=async e=>{{
 
 // ---------- http helpers ----------
 
-fn response(status: u16, content_type: &str, body: String) -> Resp {
-    let bytes = body.into_bytes();
-    let len = bytes.len();
-    let mut resp = Response::new(
-        StatusCode(status),
-        vec![],
-        Box::new(Cursor::new(bytes)) as Box<dyn Read>,
-        Some(len),
-        None,
-    );
-    if let Ok(h) = Header::from_bytes(b"Content-Type".as_ref(), content_type.as_bytes()) {
-        resp.add_header(h);
-    }
-    resp
+fn response(status: u16, content_type: &'static str, body: String) -> Resp {
+    Resp::Full(status, content_type, body)
 }
 
 fn parse_urlencoded(input: &str) -> Vec<(String, String)> {

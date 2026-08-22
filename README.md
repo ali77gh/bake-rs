@@ -354,12 +354,18 @@ It serves two things on the same port:
    By clicking on a task you go to `/{taskName}` page where you can fill task envs (as normal html inputs)
    and click 'Run' to run the task and see output logs live.
 
+   Running tasks show up on every page (auto refreshed) with a **Kill** button that stops the task immediately
+   (kills the whole process tree, and keep_alive tasks won't restart after being killed).
+
 2. **JSON API**:
    - `GET /` returns list of tasks with descriptions, commands and more
    - `GET /{taskName}` returns single task info
-   - `POST /{taskName}` runs the task and streams std-out/stderr as plain text
+   - `POST /{taskName}` runs the task and streams std-out/stderr live (chunked transfer)
+   - `GET /running` returns list of running tasks (id, name, elapsed time)
+   - `DELETE /running/{id}` kills a running task
 
 Note: browsers get html pages (by `Accept: text/html` header) and other clients (curl, scripts, etc) get json.
+Note: the run id of a started task is returned in the `X-Run-Id` response header.
 
 Example:
 

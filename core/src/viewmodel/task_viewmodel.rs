@@ -42,7 +42,15 @@ impl TaskViewModel {
             self.inner_run(bake_view_model)
         } else {
             loop {
+                // user asked to stop (example: kill button in web app)
+                if self.capabilities.should_abort() {
+                    return Err(format!("task '{}' aborted", self.name()));
+                }
                 let result = self.inner_run(bake_view_model);
+                // stop silently when the run was aborted (no restart message)
+                if self.capabilities.should_abort() {
+                    return Err(format!("task '{}' aborted", self.name()));
+                }
                 const RESTARTING_TEXT: &str = "restarting because of the keep_alive:true";
                 match result {
                     Ok(_) => self.capabilities.message(Message::bake_state(format!(
@@ -190,5 +198,74 @@ impl TaskViewModel {
 
     pub fn keep_alive(&self) -> bool {
         self.task.keep_alive()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::*;
+    use crate::viewmodel::message::Message;
+
+    struct AbortCap {
+        executions: AtomicUsize,
+    }
+
+    impl Capabilities for AbortCap {
+        fn read_file(&self, file_name: &str) -> Option<String> {
+            if file_name != crate::viewmodel::BAKE_FILE_NAME {
+                return None;
+            }
+            Some(
+                "tasks:
+  - name: loop
+    keep_alive: true
+    commands: [ echo hi ]
+"
+                .to_string(),
+            )
+        }
+
+        fn execute(&self, _: &str, _: Option<&str>) -> bool {
+            self.executions.fetch_add(1, Ordering::SeqCst);
+            true
+        }
+
+        fn open_link(&self, _: &str) {}
+
+        fn message(&self, _: Message) {}
+
+        fn input(&self) -> Option<String> {
+            None
+        }
+
+        fn set_env(&self, _: &str, _: &str) {}
+
+        fn get_env(&self, _: &str) -> Option<String> {
+            None
+        }
+
+        fn remove_env(&self, _: &str) {}
+
+        /// abort as soon as the first run finished
+        fn should_abort(&self) -> bool {
+            self.executions.load(Ordering::SeqCst) > 0
+        }
+    }
+
+    #[test]
+    fn keep_alive_stops_on_abort() {
+        let cap = Rc::new(AbortCap {
+            executions: AtomicUsize::new(0),
+        });
+        let bake = BakeViewModel::new(Rc::clone(&cap) as Rc<dyn Capabilities>).unwrap();
+        let r = bake.run_task("loop");
+        assert!(r.is_err());
+        assert_eq!(
+            cap.executions.load(Ordering::SeqCst),
+            1,
+            "keep_alive should not restart after abort"
+        );
     }
 }
