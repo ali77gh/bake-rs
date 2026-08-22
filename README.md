@@ -367,6 +367,21 @@ It serves two things on the same port:
 Note: browsers get html pages (by `Accept: text/html` header) and other clients (curl, scripts, etc) get json.
 Note: the run id of a started task is returned in the `X-Run-Id` response header.
 
+### Password protection
+
+You can protect the web app and api with a password by setting the `BAKE_PASSWORD` env variable:
+
+```sh
+$ BAKE_PASSWORD=s3cret bake serve --port 8080
+```
+
+Every route will require http basic auth:
+
+- Browsers show a login prompt automatically (user name is ignored)
+- curl: `curl -u :s3cret localhost:8080/`
+
+If `BAKE_PASSWORD` is not set (or empty) the server is open.
+
 Example:
 
 ```sh

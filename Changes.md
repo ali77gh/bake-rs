@@ -4,6 +4,7 @@
 - 'bake serve' command: web app + json api for tasks (GET / task list, GET /{taskName} task info, POST /{taskName} run task and stream output live)
 - 'bake serve': show running tasks (GET /running) and kill them (DELETE /running/{id} or kill button in web app)
 - 'bake serve': replaced tiny_http with a small hand written http server so output streams live
+- 'bake serve': optional password protection with BAKE_PASSWORD env variable (http basic auth)
 
 ## 1.0.0 - 2024-11-1
 

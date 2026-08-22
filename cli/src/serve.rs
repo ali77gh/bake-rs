@@ -88,6 +88,106 @@ fn kill_process_tree(pid: u32) {
         .spawn();
 }
 
+// ---------- auth ----------
+
+/// password read once at first request (empty/unset means no protection)
+static PASSWORD: OnceLock<Option<String>> = OnceLock::new();
+
+fn server_password() -> Option<&'static str> {
+    PASSWORD
+        .get_or_init(|| {
+            std::env::var("BAKE_PASSWORD")
+                .ok()
+                .filter(|x| !x.is_empty())
+        })
+        .as_deref()
+}
+
+/// http basic auth check, the header value is everything after 'Basic '
+fn basic_auth_matches(header_value: &str, password: &str) -> bool {
+    let value = header_value.trim();
+    // drop the 'Basic ' scheme prefix (case-insensitive per rfc)
+    let encoded = value
+        .strip_prefix("Basic ")
+        .or_else(|| value.strip_prefix("basic "))
+        .unwrap_or(value);
+    let decoded = match base64_decode(encoded) {
+        Some(x) => x,
+        None => return false,
+    };
+    // user name is ignored, only password matters ('user:password')
+    let given = String::from_utf8_lossy(&decoded);
+    let given = given.split_once(':').map(|(_, p)| p).unwrap_or(&given);
+    constant_time_eq(given, password)
+}
+
+fn authorized(req: &Req) -> bool {
+    match server_password() {
+        None => true,
+        Some(password) => req.headers.iter().any(|(name, value)| {
+            name.eq_ignore_ascii_case("authorization") && basic_auth_matches(value, password)
+        }),
+    }
+}
+
+/// small standard base64 decoder (no dependency)
+fn base64_decode(input: &str) -> Option<Vec<u8>> {
+    fn val(b: u8) -> Option<u32> {
+        match b {
+            b'A'..=b'Z' => Some((b - b'A') as u32),
+            b'a'..=b'z' => Some((b - b'a') as u32 + 26),
+            b'0'..=b'9' => Some((b - b'0') as u32 + 52),
+            b'+' => Some(62),
+            b'/' => Some(63),
+            _ => None,
+        }
+    }
+    let input: Vec<u8> = input.bytes().filter(|b| !b.is_ascii_whitespace()).collect();
+    if !input.len().is_multiple_of(4) {
+        return None;
+    }
+    let mut out = Vec::with_capacity(input.len() / 4 * 3);
+    for chunk in input.chunks(4) {
+        let mut acc: u32 = 0;
+        let mut n = 0usize;
+        for &b in chunk {
+            if b == b'=' {
+                break;
+            }
+            acc = (acc << 6) | val(b)?;
+            n += 1;
+        }
+        // rest must be padding
+        if chunk[n..].iter().any(|&b| b != b'=') {
+            return None;
+        }
+        match n {
+            2 => out.push((acc >> 4) as u8),
+            3 => {
+                out.push((acc >> 10) as u8);
+                out.push((acc >> 2) as u8);
+            }
+            4 => {
+                out.push((acc >> 16) as u8);
+                out.push((acc >> 8) as u8);
+                out.push(acc as u8);
+            }
+            _ => return None,
+        }
+    }
+    Some(out)
+}
+
+/// compares without early exit so timing leaks nothing
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    let mut diff = a.len() ^ b.len();
+    for i in 0..a.len().min(b.len()) {
+        diff |= (a[i] ^ b[i]) as usize;
+    }
+    diff == 0
+}
+
 /// [Capabilities] implementation for `bake serve`
 /// instead of printing to stdout it streams every message/command output
 /// into a channel which is consumed by the http response body
@@ -269,14 +369,26 @@ fn handle_conn(mut stream: TcpStream) {
         Ok(None) => return,
         Err(e) => {
             let body = format!("bad request: {e}");
-            let _ = write_full(&mut stream, 400, "text/plain", &body);
+            let _ = write_full(&mut stream, 400, "text/plain", &body, "");
             return;
         }
     };
 
+    // BAKE_PASSWORD env protects every route (browser shows a login prompt)
+    if !authorized(&req) {
+        let _ = write_full(
+            &mut stream,
+            401,
+            "text/plain",
+            "password required\n",
+            "WWW-Authenticate: Basic realm=\"bake\"\r\n",
+        );
+        return;
+    }
+
     match route(&req) {
         Resp::Full(status, content_type, body) => {
-            let _ = write_full(&mut stream, status, content_type, &body);
+            let _ = write_full(&mut stream, status, content_type, &body, "");
         }
         Resp::Stream { rx, run_id } => {
             let head = format!(
@@ -394,9 +506,10 @@ fn write_full(
     status: u16,
     content_type: &str,
     body: &str,
+    extra_headers: &str,
 ) -> std::io::Result<()> {
     let head = format!(
-        "HTTP/1.1 {status} {}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {status} {}\r\n{extra_headers}Content-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         reason(status),
         body.len()
     );
@@ -849,5 +962,64 @@ mod tests {
             html_escape("<a href=\"x\">&</a>"),
             "&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;"
         );
+    }
+
+    #[test]
+    fn base64_decode_test() {
+        assert_eq!(base64_decode("").unwrap(), Vec::<u8>::new());
+        assert_eq!(base64_decode("YQ==").unwrap(), b"a".to_vec());
+        assert_eq!(base64_decode("YWI=").unwrap(), b"ab".to_vec());
+        assert_eq!(base64_decode("YWJj").unwrap(), b"abc".to_vec());
+        // 'user:pass'
+        assert_eq!(
+            base64_decode("dXNlcjpwYXNz").unwrap(),
+            b"user:pass".to_vec()
+        );
+        // whitespace is tolerated
+        assert_eq!(
+            base64_decode("dXNl\n cjpwYXNz").unwrap(),
+            b"user:pass".to_vec()
+        );
+        assert!(base64_decode("abc").is_none()); // bad length
+        assert!(base64_decode("a*bc").is_none()); // bad char
+    }
+
+    #[test]
+    fn basic_auth_matches_test() {
+        let header = format!("Basic {}", encode_std_base64(":s3cret"));
+        assert!(
+            basic_auth_matches(&header, "s3cret"),
+            "header={:?} decoded={:?}",
+            header,
+            base64_decode(header.trim())
+        );
+        assert!(!basic_auth_matches(&header, "wrong"));
+        assert!(!basic_auth_matches("Basic !!!!", "s3cret"));
+        assert!(!basic_auth_matches("", "s3cret"));
+        // no colon -> treated as whole value
+        let no_user = format!("Basic {}", encode_std_base64("s3cret"));
+        assert!(basic_auth_matches(&no_user, "s3cret"));
+    }
+
+    /// test helper: standard base64 encoding
+    fn encode_std_base64(input: &str) -> String {
+        const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in input.as_bytes().chunks(3) {
+            let mut acc: u32 = 0;
+            for &b in chunk {
+                acc = (acc << 8) | b as u32;
+            }
+            let n = chunk.len();
+            acc <<= 8 * (3 - n);
+            for i in 0..4 {
+                if i <= n {
+                    out.push(CHARS[(acc >> (18 - 6 * i)) as usize & 63] as char);
+                } else {
+                    out.push('=');
+                }
+            }
+        }
+        out
     }
 }
