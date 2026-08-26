@@ -41,6 +41,8 @@ You can see roadmap [here](https://github.com/users/ali77gh/projects/5/)
   - [Working directory](#working-directory)
   - [Plugin system](#plugin-system)
   - [Web app and API (serve)](#web-app-and-api-serve)
+    - [Password protection](#password-protection)
+    - [AI agents (MCP)](#ai-agents-mcp)
   - [Stars](#stars)
 
 ## Installation
@@ -202,7 +204,7 @@ so if the exit code is 0 this means dependency is installed or exist but any oth
 You can also specify different commands or links for installing on different platforms:
 
 Note: by default bake will ask yes/no question before start installing,
-but by passing '--non-interactive' switch bake will not wait for stdin and will start installing dependency.
+but by passing '--non-interactive' switch (shorthand: '-ni') bake will not wait for stdin and will start installing dependency.
 
 ```yaml
 dependencies:
@@ -390,6 +392,58 @@ $ curl -X POST "localhost:8080/greet?NAME=ali&COUNT=3"
 ```
 
 Params can be passed by query string or form body (`NAME=ali&COUNT=3`).
+
+### AI agents (MCP)
+
+`bake serve` also exposes an [MCP](https://modelcontextprotocol.io) endpoint (Streamable HTTP, at `POST /mcp`)
+so AI agents like Claude Desktop, Cursor or any other MCP client can run your tasks:
+
+| Tool | Description |
+|---|---|
+| `list_tasks` | list tasks with help text and params |
+| `run_task` | run a task; waits and returns full output by default (`background: true` returns a run id immediately) |
+| `get_output` | output collected so far for a run (works while running and after it finishes) |
+| `list_running` | running tasks with ids and elapsed time |
+| `kill_run` | kill a task and its whole process tree |
+
+Add bake to your agent's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "bake": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+With password protection set ([BAKE_PASSWORD](#password-protection)), add an `Authorization` header
+(value is `Basic ` + base64 of `:YOUR_PASSWORD`, user name is empty):
+
+```json
+{
+  "mcpServers": {
+    "bake": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Basic OnMzY3JldA=="
+      }
+    }
+  }
+}
+```
+
+(`OnMzY3JldA==` is base64 of `:s3cret`)
+
+Security notes:
+
+- Agents can only run tasks you defined in your bakefile — there is no arbitrary shell access,
+  and params are validated against the task's declared envs.
+- The server binds to `127.0.0.1` only, so nothing outside your machine can reach it.
+- If no `BAKE_PASSWORD` is set any local process can run your tasks through the API.
 
 ## Stars
 

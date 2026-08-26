@@ -1,6 +1,7 @@
 mod arg_parser;
 mod capabilities;
 mod help;
+mod mcp;
 mod repl;
 mod serve;
 mod show_tasks;

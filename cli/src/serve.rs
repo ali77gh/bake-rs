@@ -19,18 +19,50 @@ use core::viewmodel::BakeViewModel;
 use serde_json::json;
 
 use crate::capabilities::{SHELL, SWITCH};
+use crate::mcp;
+
+/// how much output is kept per run (older bytes are dropped)
+const OUTPUT_CAP: usize = 128 * 1024;
+/// how many finished runs stay visible for `get_output`
+const HISTORY_CAP: usize = 16;
+
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum RunStatus {
+    Running,
+    Succeeded,
+    Failed,
+    Killed,
+}
+
+impl RunStatus {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            RunStatus::Running => "running",
+            RunStatus::Succeeded => "succeeded",
+            RunStatus::Failed => "failed",
+            RunStatus::Killed => "killed",
+        }
+    }
+}
 
 /// a task run in progress (shared between the worker thread and http handlers)
-struct RunEntry {
+pub(crate) struct RunEntry {
     id: u64,
     name: String,
     started_at: Instant,
     abort: AtomicBool,
     /// pid of the currently running command (process group leader)
     active_child: Mutex<Option<u32>>,
+    /// everything the task printed so far (capped ring buffer)
+    output: Mutex<Vec<u8>>,
+    status: Mutex<RunStatus>,
 }
 
 impl RunEntry {
+    pub(crate) fn id(&self) -> u64 {
+        self.id
+    }
+
     fn aborted(&self) -> bool {
         self.abort.load(Ordering::SeqCst)
     }
@@ -42,22 +74,124 @@ impl RunEntry {
     fn elapsed_ms(&self) -> u64 {
         self.started_at.elapsed().as_millis() as u64
     }
+
+    fn push_output(&self, bytes: &[u8]) {
+        let mut out = self.output.lock().unwrap();
+        out.extend_from_slice(bytes);
+        let overflow = out.len().saturating_sub(OUTPUT_CAP);
+        if overflow > 0 {
+            out.drain(..overflow);
+        }
+    }
+
+    fn set_status(&self, status: RunStatus) {
+        *self.status.lock().unwrap() = status;
+    }
+
+    fn status(&self) -> RunStatus {
+        *self.status.lock().unwrap()
+    }
+
+    fn output_text(&self) -> String {
+        String::from_utf8_lossy(&self.output.lock().unwrap()).into_owned()
+    }
 }
 
 static RUNS: OnceLock<Mutex<Vec<Arc<RunEntry>>>> = OnceLock::new();
+static FINISHED: OnceLock<Mutex<Vec<Arc<RunEntry>>>> = OnceLock::new();
 static NEXT_RUN_ID: AtomicU64 = AtomicU64::new(1);
 
 fn runs() -> &'static Mutex<Vec<Arc<RunEntry>>> {
     RUNS.get_or_init(Mutex::default)
 }
 
+fn finished_runs() -> &'static Mutex<Vec<Arc<RunEntry>>> {
+    FINISHED.get_or_init(Mutex::default)
+}
+
 fn next_run_id() -> u64 {
     NEXT_RUN_ID.fetch_add(1, Ordering::SeqCst)
 }
 
+/// finds a run by id, first among the running ones then the finished history
+pub(crate) fn find_run(id: u64) -> Option<Arc<RunEntry>> {
+    if let Some(x) = runs().lock().unwrap().iter().find(|x| x.id == id) {
+        return Some(Arc::clone(x));
+    }
+    finished_runs()
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|x| x.id == id)
+        .map(Arc::clone)
+}
+
+/// human readable report for an agent (status + collected output)
+pub(crate) fn run_report(entry: &Arc<RunEntry>) -> String {
+    const MAX_TEXT: usize = 64 * 1024;
+    let text = entry.output_text();
+    let tail = if text.len() > MAX_TEXT {
+        // cut at the next char boundary so we don't split a utf-8 sequence
+        let start = text.len() - MAX_TEXT;
+        let start = (start..text.len())
+            .find(|i| text.is_char_boundary(*i))
+            .unwrap_or(start);
+        format!("(output truncated)\n{}", &text[start..])
+    } else {
+        text
+    };
+    format!(
+        "task: {}\nrun id: {}\nstatus: {}\n\n{tail}",
+        entry.name,
+        entry.id,
+        entry.status().as_str()
+    )
+}
+
+/// starts a run in the background, the caller decides what to do with the
+/// stream receiver (stream it to http, drop it, or drain it to wait)
+pub(crate) fn start_run(
+    bake: &BakeViewModel,
+    name: &str,
+    raw_params: Vec<(String, String)>,
+) -> Result<(Arc<RunEntry>, Receiver<Vec<u8>>), String> {
+    let task = match bake.get_task(name) {
+        Some(x) => x,
+        None => return Err(format!("task '{name}' not found")),
+    };
+    // only declared params are accepted, anything else would be env injection
+    let declared: Vec<String> = task.params().iter().map(|p| p.name().to_string()).collect();
+    let mut params = Vec::new();
+    for (key, value) in raw_params {
+        if value.is_empty() {
+            continue; // same as the web form which skips empty inputs
+        }
+        if !declared.iter().any(|x| x == &key) {
+            return Err(format!("unknown param '{key}' for task '{name}'"));
+        }
+        params.push((key, value));
+    }
+
+    let entry = Arc::new(RunEntry {
+        id: next_run_id(),
+        name: name.to_string(),
+        started_at: Instant::now(),
+        abort: AtomicBool::new(false),
+        active_child: Mutex::new(None),
+        output: Mutex::default(),
+        status: Mutex::new(RunStatus::Running),
+    });
+    runs().lock().unwrap().push(Arc::clone(&entry));
+    let (tx, rx) = mpsc::channel::<Vec<u8>>();
+    let worker_entry = Arc::clone(&entry);
+    let task_name = name.to_string();
+    thread::spawn(move || run_task_streaming(task_name, params, tx, worker_entry));
+    Ok((entry, rx))
+}
+
 /// kills the process group of a running task
 /// returns false if there is no such running task
-fn kill_run(id: u64) -> bool {
+pub(crate) fn kill_run(id: u64) -> bool {
     let entry = {
         let runs = runs().lock().unwrap();
         match runs.iter().find(|x| x.id == id) {
@@ -69,6 +203,7 @@ fn kill_run(id: u64) -> bool {
     if let Some(pid) = entry.active_child.lock().unwrap().take() {
         kill_process_tree(pid);
     }
+    entry.set_status(RunStatus::Killed);
     true
 }
 
@@ -288,7 +423,11 @@ impl Capabilities for ServeCapabilities {
         if !content.ends_with('\n') {
             content.push('\n');
         }
-        let _ = self.tx.send(content.into_bytes());
+        let _ = self.tx.send(content.clone().into_bytes());
+        // every run keeps its own copy so agents can read it back later
+        if let Some(run) = &self.run {
+            run.push_output(content.as_bytes());
+        }
     }
 
     /// serve mode is non-interactive (inputs come from the request)
@@ -349,12 +488,12 @@ pub fn start_server(port: u16) {
 }
 
 /// parsed http request (only what bake needs)
-struct Req {
-    method: String,
-    path: String,
-    query: Option<String>,
-    headers: Vec<(String, String)>,
-    body: Vec<u8>,
+pub(crate) struct Req {
+    pub(crate) method: String,
+    pub(crate) path: String,
+    pub(crate) query: Option<String>,
+    pub(crate) headers: Vec<(String, String)>,
+    pub(crate) body: Vec<u8>,
 }
 
 const MAX_HEAD: usize = 64 * 1024;
@@ -544,7 +683,8 @@ fn write_stream(stream: &mut TcpStream, rx: Receiver<Vec<u8>>) -> std::io::Resul
     stream.flush()
 }
 
-enum Resp {
+#[derive(Debug)]
+pub(crate) enum Resp {
     Full(u16, &'static str, String),
     /// run output streamed live to the client
     Stream {
@@ -569,6 +709,13 @@ fn route(req: &Req) -> Resp {
             }
         }
         ("GET", "running") => running_json(),
+        // model context protocol endpoint for ai agents (json-rpc over http)
+        ("POST", "mcp") => mcp::handle(req),
+        ("GET", "mcp") => Resp::Full(
+            405,
+            "text/plain",
+            "the mcp endpoint only accepts POST\n".to_string(),
+        ),
         ("DELETE", p) => match p
             .strip_prefix("running/")
             .and_then(|x| x.parse::<u64>().ok())
@@ -593,9 +740,6 @@ fn route(req: &Req) -> Resp {
             None => Resp::Full(404, "text/plain", format!("task '{name}' not found")),
         },
         ("POST", name) => {
-            if bake.get_task(name).is_none() {
-                return Resp::Full(404, "text/plain", format!("task '{name}' not found"));
-            }
             // params can come from the query string and/or form body
             let mut params = req
                 .query
@@ -603,28 +747,20 @@ fn route(req: &Req) -> Resp {
                 .map(parse_urlencoded)
                 .unwrap_or_default();
             params.extend(parse_urlencoded(&String::from_utf8_lossy(&req.body)));
-            // this entry makes the run visible in GET /running and killable
-            // (created here so its id can be returned in the X-Run-Id header)
-            let entry = Arc::new(RunEntry {
-                id: next_run_id(),
-                name: name.to_string(),
-                started_at: Instant::now(),
-                abort: AtomicBool::new(false),
-                active_child: Mutex::new(None),
-            });
-            runs().lock().unwrap().push(Arc::clone(&entry));
-            let (tx, rx) = mpsc::channel::<Vec<u8>>();
-            let name = name.to_string();
-            let run_id = entry.id;
-            thread::spawn(move || run_task_streaming(name, params, tx, entry));
-            Resp::Stream { rx, run_id }
+            match start_run(&bake, name, params) {
+                Ok((entry, rx)) => Resp::Stream {
+                    rx,
+                    run_id: entry.id,
+                },
+                Err(e) => Resp::Full(400, "text/plain", e),
+            }
         }
         _ => Resp::Full(405, "text/plain", "method not allowed".to_string()),
     }
 }
 
 /// bakefile view model for read only checks (messages are discarded)
-fn probe_caps() -> Rc<dyn Capabilities> {
+pub(crate) fn probe_caps() -> Rc<dyn Capabilities> {
     let (tx, _) = mpsc::channel();
     Rc::new(ServeCapabilities { tx, run: None })
 }
@@ -667,15 +803,28 @@ fn run_task_streaming(
 
     runs().lock().unwrap().retain(|x| x.id != entry.id);
 
-    if let Err(e) = result {
-        if entry.aborted() {
-            serve_cap.message(Message::warning(format!("Task '{task_name}' killed\n")));
-        } else {
-            serve_cap.message(Message::error(format!("{e}\n")));
-            serve_cap.message(Message::error(format!(
-                "Task '{task_name}' failed to run\n"
-            )));
+    // final status goes into the entry before it moves into the history
+    if entry.aborted() {
+        entry.set_status(RunStatus::Killed);
+        serve_cap.message(Message::warning(format!("Task '{task_name}' killed\n")));
+    } else {
+        match result {
+            Ok(()) => entry.set_status(RunStatus::Succeeded),
+            Err(e) => {
+                entry.set_status(RunStatus::Failed);
+                serve_cap.message(Message::error(format!("{e}\n")));
+                serve_cap.message(Message::error(format!(
+                    "Task '{task_name}' failed to run\n"
+                )));
+            }
         }
+    }
+
+    let mut history = finished_runs().lock().unwrap();
+    history.push(Arc::clone(&entry));
+    let overflow = history.len().saturating_sub(HISTORY_CAP);
+    if overflow > 0 {
+        history.drain(..overflow);
     }
 }
 
@@ -683,7 +832,16 @@ fn run_task_streaming(
 
 /// list of currently running tasks (GET /running)
 fn running_json() -> Resp {
-    let running: Vec<serde_json::Value> = runs()
+    response(
+        200,
+        "application/json",
+        serde_json::to_string_pretty(&json!({ "running": running_value() })).unwrap_or_default(),
+    )
+}
+
+/// running tasks as json, shared between the http api and the mcp tools
+pub(crate) fn running_value() -> Vec<serde_json::Value> {
+    runs()
         .lock()
         .unwrap()
         .iter()
@@ -694,12 +852,7 @@ fn running_json() -> Resp {
                 "elapsed_ms": r.elapsed_ms(),
             })
         })
-        .collect();
-    response(
-        200,
-        "application/json",
-        serde_json::to_string_pretty(&json!({ "running": running })).unwrap_or_default(),
-    )
+        .collect()
 }
 
 fn tasks_json(bake: &BakeViewModel) -> Resp {

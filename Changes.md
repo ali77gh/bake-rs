@@ -5,6 +5,7 @@
 - 'bake serve': show running tasks (GET /running) and kill them (DELETE /running/{id} or kill button in web app)
 - 'bake serve': replaced tiny_http with a small hand written http server so output streams live
 - 'bake serve': optional password protection with BAKE_PASSWORD env variable (http basic auth)
+- 'bake serve': MCP endpoint (POST /mcp) so ai agents can list tasks, run tasks, see output and running tasks, and kill them
 
 ## 1.0.0 - 2024-11-1
 
