@@ -1,3 +1,5 @@
+use crate::model::task::TaskStatusCode;
+
 use super::message::Message;
 
 /// This trait makes view_model pure and side_effect independent
@@ -13,16 +15,19 @@ pub trait Capabilities {
     ///     stdout to [Message::normal]
     ///     stderr to [Message::error]
     ///     stdin using [Capabilities::ask_user]
-    fn execute(&self, command: &str, working_directory: Option<&str>) -> bool;
+    fn execute(&self, command: &str, working_directory: Option<&str>)
+        -> Result<(), TaskStatusCode>;
 
-    /// doing [Capabilities::execute] in loop and exit on false
-    fn execute_all(&self, commands: &[&str], working_directory: Option<&str>) -> bool {
+    /// doing [Capabilities::execute] in loop and return the Err(status code) on error
+    fn execute_all(
+        &self,
+        commands: &[&str],
+        working_directory: Option<&str>,
+    ) -> Result<(), TaskStatusCode> {
         for cmd in commands {
-            if !self.execute(cmd, working_directory) {
-                return false;
-            }
+            self.execute(cmd, working_directory)?;
         }
-        true
+        Ok(())
     }
 
     /// open link in user browser or just show user the link

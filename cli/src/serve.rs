@@ -1,3 +1,4 @@
+use core::model::task::TaskStatusCode;
 use std::io::{BufRead, BufReader, Cursor, Read};
 use std::process::{Command, Stdio};
 use std::rc::Rc;
@@ -26,7 +27,11 @@ impl Capabilities for ServeCapabilities {
         std::fs::read_to_string(file_name).ok()
     }
 
-    fn execute(&self, command: &str, working_directory: Option<&str>) -> bool {
+    fn execute(
+        &self,
+        command: &str,
+        working_directory: Option<&str>,
+    ) -> Result<(), TaskStatusCode> {
         self.message(Message::bake_state(format!(
             "running command => '{}'\n",
             command
@@ -41,7 +46,7 @@ impl Capabilities for ServeCapabilities {
                     e,
                     working_directory.unwrap_or(".")
                 )));
-                return false;
+                return Err(1);
             }
         };
 
@@ -58,7 +63,7 @@ impl Capabilities for ServeCapabilities {
             Ok(x) => x,
             Err(e) => {
                 self.message(Message::error(format!("can't run '{}': {}\n", command, e)));
-                return false;
+                return Err(1);
             }
         };
 
@@ -72,8 +77,9 @@ impl Capabilities for ServeCapabilities {
         }
 
         match child.wait() {
-            Ok(status) => status.success(),
-            Err(_) => false,
+            Ok(x) if x.success() => Ok(()),
+            Ok(x) => Err(x.code().unwrap_or(1)),
+            Err(_) => Err(1),
         }
     }
 
@@ -305,7 +311,7 @@ fn task_json(task: &TaskViewModel) -> serde_json::Value {
         "keep_alive": task.keep_alive(),
         "commands": match task.commands() {
             Ok(cmds) => json!(cmds.iter().map(command_string).collect::<Vec<_>>()),
-            Err(e) => json!({ "error": e }),
+            Err(e) => json!({ "error": &e.message }),
         },
     })
 }

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    model::dependency::Dependency,
+    model::{dependency::Dependency, task::TaskError},
     util::url::{generate_installation_link, standard_link},
 };
 
@@ -78,7 +78,7 @@ impl DependencyViewModel {
     /// double check dependency exist after installation
     /// if there is no installation commands for platform it tries to open link or generates installation link if its not specified
     /// Err on opening link (because we can not wait for user to install it manually)
-    pub fn try_install(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+    pub fn try_install(&self, bake_view_model: &BakeViewModel) -> Result<(), TaskError> {
         // this prevents going deeper in dependency tree
         if self.is_installed(bake_view_model) == IsInstalledState::Installed {
             self.capabilities.message(Message::bake_state(format!(
@@ -96,7 +96,7 @@ impl DependencyViewModel {
             )
             .as_str(),
         ) {
-            return Err(format!("cancel installation {}", self.name()));
+            return Err(format!("cancel installation {}", self.name()).into());
         }
 
         // *THIS IS RECURSIVE*
@@ -113,7 +113,7 @@ impl DependencyViewModel {
 
             //double check installation
             if self.is_installed(bake_view_model) == IsInstalledState::NotInstalled {
-                return Err(format!("'{}' installation ends without error but double check after installation failed\n", self.name()));
+                return Err(format!("'{}' installation ends without error but double check after installation failed\n", self.name()).into());
             } else {
                 self.capabilities.message(Message::bake_state(format!(
                     "dependency '{}' is installed successfully!\n",
@@ -138,6 +138,6 @@ impl DependencyViewModel {
             self.capabilities.open_link(&generate_installation_link(self.name()));
         }
 
-        Err(format!("{} is not installable", self.name()))
+        Err(format!("{} is not installable", self.name()).into())
     }
 }

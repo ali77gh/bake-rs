@@ -13,7 +13,7 @@ use env_with_role_back::EnvWithRoleBack;
 use task_viewmodel::TaskViewModel;
 
 use crate::{
-    model::{bake_file::BakeFile, command::Command, plugin::Plugin},
+    model::{bake_file::BakeFile, command::Command, plugin::Plugin, task::TaskError},
     util::ordered_map::OrderedMap,
 };
 
@@ -87,7 +87,7 @@ impl BakeViewModel {
 
     /// Same as [install_dependency] but in loop
     /// It will stop iteration on error
-    pub fn install_dependencies(&self, names: &[String]) -> Result<(), String> {
+    pub fn install_dependencies(&self, names: &[String]) -> Result<(), TaskError> {
         for name in names {
             self.install_dependency(name)?;
         }
@@ -95,16 +95,16 @@ impl BakeViewModel {
     }
 
     /// this installs dependencies and will skip if it's already installed
-    pub fn install_dependency(&self, name: &str) -> Result<(), String> {
+    pub fn install_dependency(&self, name: &str) -> Result<(), TaskError> {
         if let Some(dependency) = self.get_dependency(name) {
             dependency.try_install(self)
         } else {
-            Err(format!("dependency {} not found", name))
+            Err(format!("dependency {} not found", name).into())
         }
     }
 
     /// takes a taskName or taskIndex and tries to run task
-    pub fn run_task(&self, name: &str) -> Result<(), String> {
+    pub fn run_task(&self, name: &str) -> Result<(), TaskError> {
         if let Some(task) = self.get_task(name) {
             task.run(self)
         } else {
@@ -123,15 +123,17 @@ impl BakeViewModel {
         &self,
         command: &Command,
         working_directory: Option<&str>,
-    ) -> Result<(), String> {
+    ) -> Result<(), TaskError> {
         match command {
-            Command::ShellCommand(cmd) => {
-                if self.caps.execute(cmd, working_directory) {
-                    Ok(())
-                } else {
-                    Err(format!("Error while running {}", cmd))
+            Command::ShellCommand(cmd) => match self.caps.execute(cmd, working_directory) {
+                Ok(_) => Ok(()),
+                Err(code) => {
+                    let message =
+                        format!("Error while running {}, exited with code: {}", cmd, code);
+
+                    Err(TaskError::new(message, code))
                 }
-            }
+            },
             Command::FunctionCall(fc) => match fc.namespace() {
                 "this" => {
                     let mut env_with_role_back = EnvWithRoleBack::new();
@@ -148,7 +150,7 @@ impl BakeViewModel {
                         env_with_role_back.role_back(self.caps.clone());
                         r
                     }
-                    None => Err(format!("namespace '{}' not found", namespace)),
+                    None => Err(format!("namespace '{}' not found", namespace).into()),
                 },
             },
         }
@@ -160,7 +162,7 @@ impl BakeViewModel {
         &self,
         commands: &[Command],
         working_directory: Option<&str>,
-    ) -> Result<(), String> {
+    ) -> Result<(), TaskError> {
         for command in commands {
             self.run_command(command, working_directory)?;
         }
@@ -170,7 +172,10 @@ impl BakeViewModel {
 
 #[cfg(test)]
 mod tests {
+
     use message::Message;
+
+    use crate::model::task::TaskStatusCode;
 
     use super::*;
 
@@ -212,9 +217,13 @@ tasks:
             )
         }
 
-        fn execute(&self, _: &str, _: Option<&str>) -> bool {
+        fn execute(&self, cmd: &str, _: Option<&str>) -> Result<(), TaskStatusCode> {
             Message::normal("done");
-            true
+            if cmd == "fail" {
+                Err(3)
+            } else {
+                Ok(())
+            }
         }
 
         fn open_link(&self, _: &str) {}
@@ -250,5 +259,26 @@ tasks:
             r.unwrap().get_task_at(0).unwrap().name(),
             "clean".to_string()
         );
+    }
+
+    #[test]
+    fn failing_shell_command_carries_exit_code() {
+        let bake = BakeViewModel::new(Rc::new(TestCap)).unwrap();
+
+        let err = bake
+            .run_command(&Command::ShellCommand("fail".to_string()), None)
+            .unwrap_err();
+
+        assert_eq!(err.code, 3);
+        assert!(err.message.contains("fail"));
+    }
+
+    #[test]
+    fn successful_shell_command_is_ok() {
+        let bake = BakeViewModel::new(Rc::new(TestCap)).unwrap();
+
+        assert!(bake
+            .run_command(&Command::ShellCommand("anything".to_string()), None)
+            .is_ok());
     }
 }

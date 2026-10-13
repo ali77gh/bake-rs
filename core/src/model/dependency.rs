@@ -1,6 +1,9 @@
 use serde::Deserialize;
 
-use crate::util::platform_specific::{get_platform_name, platform_specific};
+use crate::{
+    model::task::TaskError,
+    util::platform_specific::{get_platform_name, platform_specific},
+};
 
 use super::command::Command;
 
@@ -47,7 +50,7 @@ impl Dependency {
     /// ## Errors:
     /// - command parser error
     /// - command not found
-    pub fn check(&self) -> Result<Vec<Command>, String> {
+    pub fn check(&self) -> Result<Vec<Command>, TaskError> {
         let commands = platform_specific(
             self.check.as_ref(),
             self.check_linux.as_ref(),
@@ -59,9 +62,9 @@ impl Dependency {
             commands
                 .iter()
                 .map(|x| Command::try_from(x.as_str()))
-                .collect::<Result<Vec<Command>, String>>()
+                .collect::<Result<Vec<Command>, TaskError>>()
         } else {
-            Err(format!("{} is not supported", get_platform_name()))
+            Err(format!("{} is not supported", get_platform_name()).into())
         }
     }
 
@@ -83,7 +86,7 @@ impl Dependency {
     /// ## Errors:
     /// - command parser error
     /// - command not found on platform
-    pub fn installation_command(&self) -> Result<Vec<Command>, String> {
+    pub fn installation_command(&self) -> Result<Vec<Command>, TaskError> {
         let commands = platform_specific(
             self.commands.as_ref(),
             self.commands_linux.as_ref(),
@@ -95,9 +98,9 @@ impl Dependency {
             commands
                 .iter()
                 .map(|x| Command::try_from(x.as_str()))
-                .collect::<Result<Vec<Command>, String>>()
+                .collect::<Result<Vec<Command>, TaskError>>()
         } else {
-            Err(format!("{} is not supported", get_platform_name()))
+            Err(format!("{} is not supported", get_platform_name()).into())
         }
     }
 }

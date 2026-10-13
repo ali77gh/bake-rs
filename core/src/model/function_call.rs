@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::model::task::TaskError;
+
 /// Not a yaml model (has no Deserialize macro)
 /// In yaml we use string and we use [FunctionCall::try_from] to custom parse for [FunctionCall]
 #[derive(Debug, PartialEq)]
@@ -33,7 +35,7 @@ impl FunctionCall {
 }
 
 impl TryFrom<&str> for FunctionCall {
-    type Error = String;
+    type Error = TaskError;
 
     /// Custom parser for string in yaml model
     /// syntax is like:
@@ -43,11 +45,13 @@ impl TryFrom<&str> for FunctionCall {
     /// '@this.function_name --param1Name param1Value --param2Name param2Value'
     /// hidden namespace means 'this':
     /// '@function_name --param1Name param1Value --param2Name param2Value'
-    fn try_from(value: &str) -> Result<Self, String> {
+    fn try_from(value: &str) -> Result<Self, TaskError> {
         let str = value.trim();
 
         if !str.starts_with('@') {
-            return Err("syntax error: function call should starts with @".to_string());
+            return Err("syntax error: function call should starts with @"
+                .to_string()
+                .into());
         }
 
         // Safety input string at
@@ -66,23 +70,24 @@ impl TryFrom<&str> for FunctionCall {
             _ => {
                 return Err(
                     "syntax error( more than one dots found in @namespace.functionName)"
-                        .to_string(),
+                        .to_string()
+                        .into(),
                 )
             }
         };
 
         if namespace.is_empty() {
-            return Err("syntax error(namespace is missing)".to_string());
+            return Err("syntax error(namespace is missing)".to_string().into());
         }
         if function_name.is_empty() {
-            return Err("syntax error(function name is missing)".to_string());
+            return Err("syntax error(function name is missing)".to_string().into());
         }
 
         let mut args = HashMap::<String, String>::new();
         let sp = str.split(' ').skip(1).collect::<Vec<&str>>(); // skip namespace and function name
         if !sp.is_empty() {
             if sp.len() % 2 != 0 {
-                return Err("invalid param passing. help: @namespace.task --param1 value1 --param2 value2 ...".to_owned());
+                return Err("invalid param passing. help: @namespace.task --param1 value1 --param2 value2 ...".to_owned().into());
             }
             for i in 0..sp.len() - 1 {
                 if i % 2 == 0 {
@@ -93,7 +98,8 @@ impl TryFrom<&str> for FunctionCall {
                         return Err(format!(
                             "invalid param name '{}' (param name should start with '--' )",
                             key
-                        ));
+                        )
+                        .into());
                     }
                     let key = key[2..].to_string(); // pop -- from key
                     args.insert(key, value);
@@ -173,12 +179,17 @@ mod tests {
             Err(
                 "invalid param passing. help: @namespace.task --param1 value1 --param2 value2 ..."
                     .to_string()
+                    .into()
             )
         );
 
         assert_eq!(
             FunctionCall::try_from("@this.function_name a b"),
-            Err("invalid param name 'a' (param name should start with '--' )".to_string())
+            Err(
+                "invalid param name 'a' (param name should start with '--' )"
+                    .to_string()
+                    .into()
+            )
         );
 
         assert_eq!(
@@ -186,6 +197,7 @@ mod tests {
             Err(
                 "invalid param passing. help: @namespace.task --param1 value1 --param2 value2 ..."
                     .to_string()
+                    .into()
             )
         );
     }

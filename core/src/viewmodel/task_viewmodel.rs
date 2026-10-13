@@ -2,8 +2,11 @@ use std::{rc::Rc, time::Duration};
 
 use crate::{
     model::{
-        command::Command, end_handler::EndHandler, function_call::FunctionCall, param::Param,
-        task::Task,
+        command::Command,
+        end_handler::EndHandler,
+        function_call::FunctionCall,
+        param::Param,
+        task::{Task, TaskError},
     },
     util::{measure_execution_time::measure_execution_time_result, ordered_map::OrderedMap},
 };
@@ -37,7 +40,7 @@ impl TaskViewModel {
         map
     }
 
-    pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+    pub fn run(&self, bake_view_model: &BakeViewModel) -> Result<(), TaskError> {
         if !self.task.keep_alive() {
             self.inner_run(bake_view_model)
         } else {
@@ -64,7 +67,7 @@ impl TaskViewModel {
     /// env checks
     /// run commands
     /// and show some messages including task time
-    fn inner_run(&self, bake_view_model: &BakeViewModel) -> Result<(), String> {
+    fn inner_run(&self, bake_view_model: &BakeViewModel) -> Result<(), TaskError> {
         // install dependencies of task
         // *this is recursive*
         bake_view_model.install_dependencies(self.dependencies())?;
@@ -98,11 +101,9 @@ impl TaskViewModel {
             (Err(e), _, None) => {
                 // error but no on_error
                 if let Some(eh) = self.task.on_end() {
-                    self.print_error(&e);
                     self.handle_end(bake_view_model, eh?, EndHandler::OnEnd);
-                } else {
-                    return Err(e);
                 }
+                return Err(e);
             }
             (Ok((_, d)), Some(eh), _) => {
                 // success with on_success
@@ -114,7 +115,7 @@ impl TaskViewModel {
             }
             (Err(e), _, Some(eh)) => {
                 // error with on_error
-                self.print_error(&e);
+                self.print_error(&e.message);
                 self.handle_end(bake_view_model, eh?, EndHandler::OnError);
                 if let Some(eh) = self.task.on_end() {
                     self.handle_end(bake_view_model, eh?, EndHandler::OnEnd);
@@ -180,7 +181,7 @@ impl TaskViewModel {
     }
 
     /// list of commands of this task
-    pub fn commands(&self) -> Result<Vec<Command>, String> {
+    pub fn commands(&self) -> Result<Vec<Command>, TaskError> {
         self.task.commands()
     }
 

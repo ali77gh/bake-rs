@@ -38,6 +38,8 @@ fn main() {
                     CLICapabilities::default().message(Message::error(format!("{e}\n")));
                     CLICapabilities::default()
                         .message(Message::error(format!("Task '{x}' failed to run\n")));
+
+                    std::process::exit(e.code);
                 }
             }
         }

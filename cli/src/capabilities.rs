@@ -1,4 +1,5 @@
 use colored::Colorize;
+use core::model::task::TaskStatusCode;
 use core::viewmodel::capabilities::Capabilities;
 use core::viewmodel::message::{Message, MessageType};
 use std::fs;
@@ -22,7 +23,11 @@ impl Capabilities for CLICapabilities {
         std::fs::read_to_string(file_name).ok()
     }
 
-    fn execute(&self, command: &str, working_directory: Option<&str>) -> bool {
+    fn execute(
+        &self,
+        command: &str,
+        working_directory: Option<&str>,
+    ) -> Result<(), TaskStatusCode> {
         self.message(Message::bake_state(format!(
             "running command => '{}'\n",
             command
@@ -38,7 +43,7 @@ impl Capabilities for CLICapabilities {
                     e,
                     working_directory.unwrap()
                 )));
-                return false;
+                return Err(1);
             }
         };
 
@@ -53,8 +58,9 @@ impl Capabilities for CLICapabilities {
             .wait();
 
         match result {
-            Ok(x) => x.success(),
-            Err(_) => false,
+            Ok(x) if x.success() => Ok(()),
+            Ok(x) => Err(x.code().unwrap_or(1)),
+            Err(_) => Err(1),
         }
     }
 

@@ -1,3 +1,5 @@
+use crate::model::task::TaskError;
+
 use super::function_call::FunctionCall;
 
 /// Not a yaml model (has no Deserialize macro)
@@ -9,15 +11,15 @@ pub enum Command {
 }
 
 impl TryFrom<&str> for Command {
-    type Error = String;
+    type Error = TaskError;
 
     /// Custom parser for string in yaml model
     /// function calls started with '@'
     /// and anything not started with @ consider as os default shell command
-    fn try_from(str: &str) -> Result<Self, String> {
+    fn try_from(str: &str) -> Result<Self, TaskError> {
         let str = str.trim();
         if str.is_empty() {
-            return Err("is empty".to_string());
+            return Err("is empty".to_string().into());
         }
         if str.starts_with('@') {
             Ok(Self::FunctionCall(FunctionCall::try_from(str)?))
@@ -56,20 +58,20 @@ mod tests {
     #[test]
     fn errors() {
         // empty
-        assert_eq!(Command::try_from(""), Err("is empty".to_string()));
+        assert_eq!(Command::try_from(""), Err("is empty".to_string().into()));
 
         // missing namespace
         let command = Command::try_from("@.copy from to");
         assert_eq!(
             command,
-            Err("syntax error(namespace is missing)".to_string())
+            Err("syntax error(namespace is missing)".to_string().into())
         );
 
         // missing function name
         let command = Command::try_from("@fs. from to");
         assert_eq!(
             command,
-            Err("syntax error(function name is missing)".to_string())
+            Err("syntax error(function name is missing)".to_string().into())
         );
 
         // missing args (ok)

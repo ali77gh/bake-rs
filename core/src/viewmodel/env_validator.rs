@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::model::param::Param;
+use crate::model::{param::Param, task::TaskError};
 
 use super::{
     capabilities::Capabilities, env_with_role_back::EnvWithRoleBack, task_viewmodel::TaskViewModel,
@@ -10,13 +10,13 @@ use super::{
 pub fn validate_envs(
     cap: Rc<dyn Capabilities>,
     task: &TaskViewModel,
-) -> Result<EnvWithRoleBack, String> {
+) -> Result<EnvWithRoleBack, TaskError> {
     let mut env_with_role_back = EnvWithRoleBack::new();
     for env in task.params() {
         if let Err(e) = validate_env(cap.clone(), env, &mut env_with_role_back) {
             // we should role back what we get from user if something goes wrong
             env_with_role_back.role_back(cap);
-            return Err(e);
+            return Err(e.into());
         };
     }
     Ok(env_with_role_back)
